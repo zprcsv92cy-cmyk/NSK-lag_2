@@ -1,6 +1,6 @@
-/* v51 — adds #stats (goalie statistics) */
+/* v52 — adds “Gjort” tracking per shift-row (pool + team + match) */
 
-const APP_VERSION = "v51";
+const APP_VERSION = "v52";
 
 /* ---------------------------
    Default Team 18 roster
@@ -99,21 +99,11 @@ function renderRoster(){
 /* ---------------------------
    Pools
 ---------------------------- */
-function loadPools(){
-  return safeJsonParse(localStorage.getItem(LS.pools) || "[]", []);
-}
-function savePools(pools){
-  localStorage.setItem(LS.pools, JSON.stringify(pools||[]));
-}
-function getCurrentPoolId(){
-  return localStorage.getItem(LS.currentPool) || "";
-}
-function setCurrentPoolId(id){
-  localStorage.setItem(LS.currentPool, id || "");
-}
-function formatPoolTitle(p){
-  return `${p?.date || "—"} · ${p?.place || "—"}`;
-}
+function loadPools(){ return safeJsonParse(localStorage.getItem(LS.pools) || "[]", []); }
+function savePools(pools){ localStorage.setItem(LS.pools, JSON.stringify(pools||[])); }
+function getCurrentPoolId(){ return localStorage.getItem(LS.currentPool) || ""; }
+function setCurrentPoolId(id){ localStorage.setItem(LS.currentPool, id || ""); }
+function formatPoolTitle(p){ return `${p?.date || "—"} · ${p?.place || "—"}`; }
 
 function createPool(){
   const today = new Date();
@@ -130,13 +120,7 @@ function createPool(){
 
   const pools = loadPools();
   const id = nowId();
-  pools.push({
-    id,
-    date: String(date).trim(),
-    place: String(place).trim(),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  });
+  pools.push({ id, date: String(date).trim(), place: String(place).trim(), createdAt: Date.now(), updatedAt: Date.now() });
   savePools(pools);
   setCurrentPoolId(id);
   routeTo("#pool");
@@ -169,7 +153,6 @@ function deletePool(id){
   pools = pools.filter(x=>x.id!==id);
   savePools(pools);
 
-  // rensa poolens localStorage keys
   for (let i=localStorage.length-1; i>=0; i--){
     const k = localStorage.key(i);
     if (k && k.startsWith(`nsk_pool_${id}_`)) localStorage.removeItem(k);
@@ -179,7 +162,6 @@ function deletePool(id){
     setCurrentPoolId("");
     routeTo("#pools");
   }
-
   renderAll();
 }
 
@@ -226,14 +208,27 @@ function poolPrefix(){
   const id = getCurrentPoolId();
   return `nsk_pool_${id}_`;
 }
-function kMatchCount(teamNo){
-  return `${poolPrefix()}matchCount_team_${teamNo}`;
+function kMatchCount(teamNo){ return `${poolPrefix()}matchCount_team_${teamNo}`; }
+function kTeamCoaches(teamNo){ return `${poolPrefix()}team_coaches_team_${teamNo}`; }
+function kState(teamNo, matchNo){ return `${poolPrefix()}state_team_${teamNo}_match_${matchNo}`; }
+
+// v52: shift done key
+function kShiftDone(teamNo, matchNo, i){
+  return `${poolPrefix()}shiftDone_team_${teamNo}_match_${matchNo}_i_${i}`;
 }
-function kTeamCoaches(teamNo){
-  return `${poolPrefix()}team_coaches_team_${teamNo}`;
+function loadShiftDone(teamNo, matchNo, i){
+  return localStorage.getItem(kShiftDone(teamNo, matchNo, i)) === "1";
 }
-function kState(teamNo, matchNo){
-  return `${poolPrefix()}state_team_${teamNo}_match_${matchNo}`;
+function setShiftDone(teamNo, matchNo, i, done){
+  localStorage.setItem(kShiftDone(teamNo, matchNo, i), done ? "1" : "0");
+}
+function resetAllShiftDone(teamNo, matchNo){
+  // remove only current match keys
+  const prefix = `${poolPrefix()}shiftDone_team_${teamNo}_match_${matchNo}_i_`;
+  for (let j=localStorage.length-1;j>=0;j--){
+    const k = localStorage.key(j);
+    if (k && k.startsWith(prefix)) localStorage.removeItem(k);
+  }
 }
 
 /* ---------------------------
@@ -341,6 +336,7 @@ function clearCurrentMatch(){
   const teamNo = getTeamNo();
   const matchNo = getMatchNo();
   localStorage.removeItem(kState(teamNo, matchNo));
+  resetAllShiftDone(teamNo, matchNo);
   loadAndRenderPool();
 }
 
@@ -522,22 +518,34 @@ function renderSchedule(){
     </div>
 
     <table>
-      <thead><tr><th>#</th><th>Tid kvar</th><th>På plan</th></tr></thead>
+      <thead><tr><th>#</th><th>Tid kvar</th><th>På plan</th><th>Gjort</th></tr></thead>
       <tbody>
-        ${times.map((t,i)=>`
-          <tr>
-            <td>${i+1}</td>
-            <td>${escapeHtml(t)}</td>
-            <td>${escapeHtml((rot[i]||[]).map(shortName).join(", ") || "—")}</td>
-          </tr>
-        `).join("")}
+        ${times.map((t,i)=>{
+          const done = loadShiftDone(teamNo, matchNo, i);
+          return `
+            <tr data-shift-row="${i}">
+              <td>${i+1}</td>
+              <td>${escapeHtml(t)}</td>
+              <td>${escapeHtml((rot[i]||[]).map(shortName).join(", ") || "—")}</td>
+              <td>
+                <button class="btn ${done ? "btn--primary" : ""}" data-act="toggleShift" data-i="${i}">
+                  ${done ? "✔ Gjort" : "Markera"}
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join("")}
       </tbody>
     </table>
+
+    <div class="muted" style="margin-top:10px">
+      Tryck “Markera” för att spara att bytet är gjort (sparas per pool+lag+match).
+    </div>
   `;
 }
 
 /* ---------------------------
-   Statistics (Goalies)
+   Statistics (Goalies) — unchanged from v51
 ---------------------------- */
 function renderStats(){
   const out = document.getElementById("statsOut");
@@ -548,7 +556,6 @@ function renderStats(){
   const curId = getCurrentPoolId();
   const cur = pools.find(p=>p.id===curId);
 
-  // collect goalie selections across pools (or current pool if exists)
   const poolIds = curId ? [curId] : pools.map(p=>p.id);
   const counts = new Map();
   const rows = [];
@@ -849,7 +856,7 @@ function setupSW(){
 }
 
 /* ---------------------------
-   Wire events (no inline onclick)
+   Wire events
 ---------------------------- */
 function wire(){
   const v = document.getElementById("versionPill");
@@ -866,7 +873,6 @@ function wire(){
   document.getElementById("btnGoalieStats").addEventListener("click", ()=>routeTo("#stats"));
 
   document.getElementById("btnBackFromStats").addEventListener("click", ()=>{
-    // go back to pool if you came from pool, else home
     if (getCurrentPoolId()) routeTo("#pool");
     else routeTo("#home");
   });
@@ -951,18 +957,40 @@ function wire(){
   document.body.addEventListener("click", (e)=>{
     const btn = e.target.closest("button");
     if (!btn) return;
-    const act = btn.getAttribute("data-act");
-    const id = btn.getAttribute("data-id");
-    if (!act || !id) return;
 
-    if (act==="startPool") return startPool(id);
-    if (act==="editPool") return editPool(id);
-    if (act==="delPool") return deletePool(id);
+    const act = btn.getAttribute("data-act");
+
+    // Pools list actions
+    const id = btn.getAttribute("data-id");
+    if (act && id){
+      if (act==="startPool") return startPool(id);
+      if (act==="editPool") return editPool(id);
+      if (act==="delPool") return deletePool(id);
+    }
+
+    // Shift “Gjort”
+    if (act === "toggleShift"){
+      const i = parseInt(btn.getAttribute("data-i")||"0",10);
+      const teamNo = getTeamNo();
+      const matchNo = getMatchNo();
+      const nowDone = loadShiftDone(teamNo, matchNo, i);
+      setShiftDone(teamNo, matchNo, i, !nowDone);
+      renderSchedule();
+      return;
+    }
   });
 
   document.getElementById("btnBackToPools").addEventListener("click", ()=>routeTo("#pools"));
   document.getElementById("btnPrint").addEventListener("click", printPDF);
   document.getElementById("btnClearMatch").addEventListener("click", clearCurrentMatch);
+
+  document.getElementById("btnResetShifts").addEventListener("click", ()=>{
+    const teamNo = getTeamNo();
+    const matchNo = getMatchNo();
+    if (!confirm("Nollställ alla ‘Gjort’-markeringar för denna match?")) return;
+    resetAllShiftDone(teamNo, matchNo);
+    renderSchedule();
+  });
 
   const autos = ["matchDate","matchTime","opponent","arena","onCourt","periodsCount","periodMin","shiftSec","goalie"];
   autos.forEach(id=>{

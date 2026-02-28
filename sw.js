@@ -1,5 +1,5 @@
-/* v50 SW */
-const CACHE = "nsk-cache-v50";
+/* v51 SW */
+const CACHE = "nsk-cache-v51";
 const ASSETS = [
   "./",
   "./index.html",
@@ -29,7 +29,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   e.respondWith((async()=>{
-    // Network first for HTML, so updates propagate faster
+    // Network first for HTML
     if (req.mode === "navigate" || (req.headers.get("accept")||"").includes("text/html")){
       try{
         const fresh = await fetch(req);

@@ -4,7 +4,7 @@
      * Navigations (HTML): network-first (so GitHub updates come through)
      * Static assets: stale-while-revalidate
 */
-const CACHE = 'nsk-lag-cache-v36';
+const CACHE = 'nsk-lag-cache-v38';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const CORE_ASSETS = [
 
 // Install: pre-cache core and activate asap
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE).then((cache) => cache.addAll(CORE_ASSETS)).catch(() => {})

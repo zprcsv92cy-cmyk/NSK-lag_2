@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0b1220" />
 
-  <link rel="stylesheet" href="app.css?v=62" />
+  <link rel="stylesheet" href="app.css?v=63" />
 </head>
 <body>
   <div class="page">
@@ -22,20 +22,17 @@
       </div>
 
       <div class="headerRight">
-        <div class="versionPill" id="versionPill">v62</div>
+        <div class="versionPill" id="versionPill">v63</div>
       </div>
     </header>
 
-    <!-- TOP NAV -->
     <nav class="topNav">
       <button class="tab" data-nav="#startsida">Startsida</button>
       <button class="tab" data-nav="#trupp" data-action="open-trupp">Truppen team 18</button>
       <button class="tab" data-nav="#poolspel">Poolspel</button>
     </nav>
 
-    <!-- VIEWS -->
     <main>
-      <!-- STARTSIDA -->
       <section id="view-startsida" class="view">
         <div class="card">
           <div class="cardBody">
@@ -55,7 +52,6 @@
         </div>
       </section>
 
-      <!-- POOLSPEL -->
       <section id="view-poolspel" class="view hidden">
         <div class="card">
           <div class="cardBody">
@@ -129,7 +125,7 @@
             <div class="msgRow">
               <div id="msg" class="msg"></div>
               <div class="rightTools">
-                <button class="btnSmall" data-action="match-mode">Matchläge</button>
+                <button class="btnSmall" data-action="open-matchscreen">Matchläge</button>
                 <button class="btnSmall" data-action="export-print">PDF / Skriv ut</button>
                 <span id="saveState" class="pill">Redo</span>
               </div>
@@ -199,6 +195,47 @@
     </div>
   </div>
 
-  <script src="app.js?v=62"></script>
+  <!-- MATCHSCREEN -->
+  <div id="matchOverlay" class="matchOverlay hidden" aria-hidden="true">
+    <div class="matchSheet">
+      <div class="matchTop">
+        <div class="matchTitle">
+          <div class="matchTitleMain">MATCHLÄGE</div>
+          <div class="matchTitleSub" id="matchInfo">—</div>
+        </div>
+        <div class="matchTopRight">
+          <div class="matchBadge" id="matchBadge">Byte 1/1</div>
+          <button class="matchClose" data-action="close-matchscreen">Stäng</button>
+        </div>
+      </div>
+
+      <div class="matchBig">
+        <div class="matchBlock">
+          <div class="matchLabel">NU PÅ PLAN</div>
+          <div class="matchNames" id="nowLineup">—</div>
+        </div>
+
+        <div class="matchBlock">
+          <div class="matchLabel">NÄSTA BYTE</div>
+          <div class="matchNames next" id="nextLineup">—</div>
+        </div>
+      </div>
+
+      <div class="matchButtons">
+        <button class="matchBtn secondary" data-action="undo-shift">Ångra</button>
+        <button class="matchBtn primary" data-action="next-shift">Nästa byte</button>
+      </div>
+
+      <div class="matchMini">
+        <div class="miniRow">
+          <div class="miniPill">Målvakt: <span id="miniGoalie">—</span></div>
+          <div class="miniPill">Bytestid: <span id="miniShift">—</span></div>
+          <div class="miniPill">Tid kvar: <span id="miniTime">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=63"></script>
 </body>
 </html>

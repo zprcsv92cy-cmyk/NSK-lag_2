@@ -1,4 +1,4 @@
-const APP_VERSION = 'v67';
+const APP_VERSION = 'v68';
 
 let matchLockActive = false;
 let matchLockHash = '';
@@ -390,7 +390,7 @@ function showHome() {
   viewHome.style.display = 'block';
   viewPool.style.display = 'none';
   viewMatch.style.display = 'none';
-  viewStats.style.display = 'none';
+  viewStats.style.display = 'nonee';
   setHash('');
   renderPools();
 }
@@ -401,7 +401,7 @@ function showPool() {
   viewHome.style.display = 'none';
   viewPool.style.display = 'block';
   viewMatch.style.display = 'none';
-  viewStats.style.display = 'none';
+  viewStats.style.display = 'nonee';
   setHash('pool');
   renderPools();
 }
@@ -409,7 +409,7 @@ function showMatch() {
   viewHome.style.display = 'none';
   viewPool.style.display = 'none';
   viewMatch.style.display = 'block';
-  viewStats.style.display = 'none';
+  viewStats.style.display = 'nonee';
   setHash('match');
   try{ const p = loadPools().find(x=>x.id===state.activePoolId); const dt = p?.date ? formatDate(p.date) : ''; const el=document.getElementById('matchDateText'); if(el) el.textContent = dt; }catch(e){}
   renderMatch();

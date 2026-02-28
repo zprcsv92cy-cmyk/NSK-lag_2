@@ -1,61 +1,49 @@
-/* sw.js — v48 */
-'use strict';
-
-const SW_VERSION = 'v48';
-const CACHE_NAME = `nsk-cache-${SW_VERSION}`;
-
+/* v50 SW */
+const CACHE = "nsk-cache-v50";
 const ASSETS = [
-  './',
-  './index.html',
-  './app.css',
-  './app.js',
-  './manifest.webmanifest',
-  './icon-192.png',
-  './icon-512.png'
+  "./",
+  "./index.html",
+  "./app.css",
+  "./app.js",
+  "./manifest.webmanifest",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil((async ()=>{
-    const cache = await caches.open(CACHE_NAME);
+self.addEventListener("install", (e) => {
+  e.waitUntil((async()=>{
+    const cache = await caches.open(CACHE);
     await cache.addAll(ASSETS);
-    self.skipWaiting();
+    await self.skipWaiting();
   })());
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async ()=>{
+self.addEventListener("activate", (e) => {
+  e.waitUntil((async()=>{
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())));
+    await Promise.all(keys.map(k => (k === CACHE ? null : caches.delete(k))));
     await self.clients.claim();
   })());
 });
 
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-});
-
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-
-  event.respondWith((async ()=>{
-    const cache = await caches.open(CACHE_NAME);
-
-    const accept = req.headers.get('accept') || '';
-    const isHTML = accept.includes('text/html') || req.destination === 'document';
-
-    if (isHTML){
+self.addEventListener("fetch", (e) => {
+  const req = e.request;
+  e.respondWith((async()=>{
+    // Network first for HTML, so updates propagate faster
+    if (req.mode === "navigate" || (req.headers.get("accept")||"").includes("text/html")){
       try{
         const fresh = await fetch(req);
-        cache.put(req, fresh.clone());
+        const cache = await caches.open(CACHE);
+        cache.put("./index.html", fresh.clone());
         return fresh;
-      }catch{
-        const cached = await cache.match(req);
-        if (cached) return cached;
-        return cache.match('./index.html');
+      } catch {
+        const cache = await caches.open(CACHE);
+        return (await cache.match("./index.html")) || (await cache.match("./")) || Response.error();
       }
     }
 
+    // Cache-first for assets
+    const cache = await caches.open(CACHE);
     const cached = await cache.match(req);
     if (cached) return cached;
 
@@ -63,8 +51,8 @@ self.addEventListener('fetch', (event) => {
       const fresh = await fetch(req);
       cache.put(req, fresh.clone());
       return fresh;
-    }catch{
-      return cached || Response.error();
+    } catch {
+      return Response.error();
     }
   })());
 });

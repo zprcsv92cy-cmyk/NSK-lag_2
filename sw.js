@@ -1,58 +1,58 @@
-/* v53 SW */
-const CACHE = "nsk-cache-v53";
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./app.css",
-  "./app.js",
-  "./manifest.webmanifest",
-  "./icon-192.png",
-  "./icon-512.png"
-];
+const CACHE = "nsk-v56";
 
-self.addEventListener("install", (e) => {
-  e.waitUntil((async()=>{
-    const cache = await caches.open(CACHE);
-    await cache.addAll(ASSETS);
-    await self.skipWaiting();
-  })());
+self.addEventListener("install", event => {
+  self.skipWaiting();
+
+  event.waitUntil(
+    caches.open(CACHE).then(cache =>
+      cache.addAll([
+        "./",
+        "./index.html",
+        "./app.js",
+        "./app.css"
+      ])
+    )
+  );
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil((async()=>{
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k === CACHE ? null : caches.delete(k))));
-    await self.clients.claim();
-  })());
+
+self.addEventListener("activate", event => {
+
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(k => k !== CACHE)
+            .map(k => caches.delete(k))
+      )
+    )
+  );
+
+  self.clients.claim();
 });
 
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  e.respondWith((async()=>{
-    // Network first for HTML
-    if (req.mode === "navigate" || (req.headers.get("accept")||"").includes("text/html")){
-      try{
-        const fresh = await fetch(req);
-        const cache = await caches.open(CACHE);
-        cache.put("./index.html", fresh.clone());
-        return fresh;
-      } catch {
-        const cache = await caches.open(CACHE);
-        return (await cache.match("./index.html")) || (await cache.match("./")) || Response.error();
-      }
-    }
 
-    // Cache-first for assets
-    const cache = await caches.open(CACHE);
-    const cached = await cache.match(req);
-    if (cached) return cached;
+self.addEventListener("fetch", event => {
 
-    try{
-      const fresh = await fetch(req);
-      cache.put(req, fresh.clone());
-      return fresh;
-    } catch {
-      return Response.error();
-    }
-  })());
+  if (event.request.mode === "navigate") {
+
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => caches.match("./index.html"))
+    );
+
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request)
+      .then(res => res || fetch(event.request))
+  );
+
+});
+
+
+self.addEventListener("message", event => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });

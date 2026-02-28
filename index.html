@@ -22,13 +22,14 @@
       <div class="brand__sub">Poolspel • Lag • Byten • PDF</div>
     </div>
   </div>
-  <div class="pill" id="versionPill">v50</div>
+  <div class="pill" id="versionPill">v51</div>
 </header>
 
 <nav class="tabs" aria-label="Navigation">
   <button class="tab" id="navHome" type="button">Startsida</button>
   <button class="tab" id="navRoster" type="button">Truppen team 18</button>
   <button class="tab" id="navPool" type="button">Poolspel</button>
+  <button class="tab" id="navStats" type="button">Statistik</button>
 </nav>
 
 <main class="wrap">
@@ -79,7 +80,7 @@
     <div class="card">
       <div class="h2">Import (backup)</div>
       <div class="muted">
-        Klistra in din backup-JSON här (t.ex. den du skickade i chatten) och tryck Importera.
+        Klistra in din backup-JSON här och tryck Importera.
       </div>
       <textarea class="textarea" id="inpImportJson" placeholder='{"players":[...],"coaches":[...],"pools":[...],"kv":{...}}'></textarea>
       <div class="row">
@@ -226,6 +227,19 @@
       <div class="h2">Bytesschema</div>
       <div id="msg"></div>
       <div id="output"></div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section id="viewStats" class="view" style="display:none">
+    <div class="card">
+      <div class="row row--between row--center">
+        <div class="h1">Statistik målvakter</div>
+        <button class="btn" id="btnBackFromStats" type="button">← Tillbaka</button>
+      </div>
+      <div class="muted" id="statsMeta"></div>
+      <div class="divider"></div>
+      <div id="statsOut"></div>
     </div>
   </section>
 

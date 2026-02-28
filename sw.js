@@ -1,5 +1,5 @@
-/* v51 SW */
-const CACHE = "nsk-cache-v51";
+/* v52 SW */
+const CACHE = "nsk-cache-v52";
 const ASSETS = [
   "./",
   "./index.html",

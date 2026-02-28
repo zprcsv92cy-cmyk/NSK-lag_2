@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v62';
+const APP_VERSION = 'v63';
 
 // ----------------------------
 // Utils
@@ -45,10 +45,6 @@ function setPill(text){
 
 // ----------------------------
 // Storage model
-// - roster (players/coaches) global
-// - pools list global
-// - pool-specific kv stored under localStorage keys directly
-//   (so your backup kv can be restored exactly)
 // ----------------------------
 const LS_PLAYERS = "nsk_players";
 const LS_COACHES = "nsk_coaches";
@@ -71,8 +67,8 @@ function poolStateKey(poolId, team, match){
 function poolMatchCountKey(poolId, team){
   return `${poolKeyPrefix(poolId)}matchCount_team_${team}`;
 }
-function poolTeamCoachesKey(poolId, team){
-  return `${poolKeyPrefix(poolId)}team_coaches_team_${team}`;
+function poolProgressKey(poolId, team, match){
+  return `${poolKeyPrefix(poolId)}progress_team_${team}_match_${match}`;
 }
 
 // ----------------------------
@@ -119,13 +115,12 @@ function formatPoolTitle(p){
   return `${p?.date || "—"} · ${p?.place || "—"}`;
 }
 function updateCurrentPoolLabel(){
-  const label = $("currentPoolLabel");
-  const pill = $("currentPoolLabel");
   const id = getCurrentPoolId();
   const pools = loadPools();
   const p = pools.find(x=>x.id===id);
-  if (label) label.textContent = p ? formatPoolTitle(p) : "—";
-  if (pill) pill.textContent = p ? formatPoolTitle(p) : "—";
+  const t = p ? formatPoolTitle(p) : "—";
+  const label = $("currentPoolLabel");
+  if (label) label.textContent = t;
 }
 
 function createPool(){
@@ -170,12 +165,7 @@ function deletePool(id){
   if (!confirm("Ta bort detta poolspel?")) return;
   const pools = loadPools().filter(x=>x.id!==id);
   savePools(pools);
-
-  if (getCurrentPoolId() === id){
-    setCurrentPoolId("");
-  }
-
-  // valfritt: rensa poolens data (kv). Jag låter den vara kvar för säkerhet.
+  if (getCurrentPoolId() === id) setCurrentPoolId("");
   renderPoolLists();
 }
 
@@ -347,7 +337,6 @@ function removeCoach(idx){
 function beginEdit(kind, idx){
   editing = {kind, idx};
   renderTruppLists();
-  // focus the input after render
   setTimeout(()=>{
     const el = document.querySelector(`.inlineEdit[data-kind="${kind}"][data-idx="${idx}"]`);
     if (el) el.focus();
@@ -374,8 +363,7 @@ function saveEdit(kind, idx, value){
 }
 
 // ----------------------------
-// Import / Export (textarea)
-// Supports your format: {players,coaches,pools,kv}
+// Import / Export
 // ----------------------------
 function doImport(){
   const area = $("importArea");
@@ -388,25 +376,17 @@ function doImport(){
   try{
     const data = JSON.parse(raw);
 
-    // roster
     if (Array.isArray(data.players) || Array.isArray(data.coaches)){
       saveRegister(Array.isArray(data.players)?data.players:[], Array.isArray(data.coaches)?data.coaches:[]);
     }
-
-    // pools list
     if (Array.isArray(data.pools)){
       savePools(data.pools);
     }
-
-    // kv (copy exact keys)
     if (data.kv && typeof data.kv === "object"){
       for (const [k,v] of Object.entries(data.kv)){
         try{
-          if (typeof v === "string"){
-            localStorage.setItem(k, v);
-          } else {
-            localStorage.setItem(k, JSON.stringify(v));
-          }
+          if (typeof v === "string") localStorage.setItem(k, v);
+          else localStorage.setItem(k, JSON.stringify(v));
         } catch {}
       }
     }
@@ -421,7 +401,6 @@ function doImport(){
     if (msg) msg.textContent = "✖ Import misslyckades";
   }
 }
-
 function doExport(){
   const {players, coaches} = loadRegister();
   const pools = loadPools();
@@ -453,7 +432,6 @@ function doExport(){
 function ensurePoolSelected(){
   const pools = loadPools();
   if (!pools.length){
-    // no pool yet -> stay on startsida
     showView("startsida");
     setActiveTab("#startsida");
     return;
@@ -465,7 +443,6 @@ function ensurePoolSelected(){
 }
 
 function renderPoolLists(){
-  // home list
   const wrap = $("poolListHome");
   if (!wrap) return;
 
@@ -492,7 +469,6 @@ function initPoolspelUI(){
   const poolId = getCurrentPoolId();
   if (!poolId) return;
 
-  // Fill dropdowns (if not already)
   fillStaticDropdowns();
   fillTeamSelect();
   fillMatchCountDropdown();
@@ -506,7 +482,6 @@ function initPoolspelUI(){
 // Dropdown filling
 // ----------------------------
 function fillStaticDropdowns(){
-  // arena 1-4
   const arena = $("arena");
   if (arena && !arena.dataset.filled){
     arena.innerHTML = "";
@@ -519,7 +494,6 @@ function fillStaticDropdowns(){
     arena.dataset.filled = "1";
   }
 
-  // team size 1-25
   const teamSize = $("teamSize");
   if (teamSize && !teamSize.dataset.filled){
     teamSize.innerHTML = "";
@@ -532,7 +506,6 @@ function fillStaticDropdowns(){
     teamSize.dataset.filled = "1";
   }
 
-  // onCourt 3-5
   const onCourt = $("onCourt");
   if (onCourt && !onCourt.dataset.filled){
     onCourt.innerHTML = "";
@@ -545,7 +518,6 @@ function fillStaticDropdowns(){
     onCourt.dataset.filled="1";
   }
 
-  // periods 1-3
   const periodsCount = $("periodsCount");
   if (periodsCount && !periodsCount.dataset.filled){
     periodsCount.innerHTML="";
@@ -558,7 +530,6 @@ function fillStaticDropdowns(){
     periodsCount.dataset.filled="1";
   }
 
-  // periodMin 8-20
   const periodMin = $("periodMin");
   if (periodMin && !periodMin.dataset.filled){
     periodMin.innerHTML="";
@@ -571,7 +542,6 @@ function fillStaticDropdowns(){
     periodMin.dataset.filled="1";
   }
 
-  // shiftSec 30-180 step 5
   const shiftSec = $("shiftSec");
   if (shiftSec && !shiftSec.dataset.filled){
     shiftSec.innerHTML="";
@@ -614,8 +584,6 @@ function fillMatchCountDropdown(){
 
 function refreshDropdowns(){
   const {players} = loadRegister();
-
-  // goalie
   const goalie = $("goalie");
   if (goalie){
     const cur = goalie.value;
@@ -631,7 +599,6 @@ function refreshDropdowns(){
     goalie.value = cur;
   }
 
-  // player selects re-render based on current teamSize/state
   const st = getFormState();
   renderPlayerSelectors(parseInt(st.teamSize,10)||10, st.players || []);
 }
@@ -875,7 +842,6 @@ function makeLineupsForMatch(st, globalCounts, shiftTimes){
   }
   if (!roster.length) return shiftTimes.map(()=>[]);
 
-  // weights
   const W_FAIR = 8;
   const W_STR  = 3;
   const W_CONT = 6;
@@ -891,7 +857,6 @@ function makeLineupsForMatch(st, globalCounts, shiftTimes){
       return b.r-a.r;
     });
 
-    // candidate pool
     const poolSet=new Set();
     const pool=[];
     for (const obj of countsArr.slice(0, Math.min(12, roster.length))){
@@ -987,7 +952,150 @@ function formatInfoLine(st){
           Motståndare: <b>${escapeHtml(opp)}</b> • Plan: <b>${escapeHtml(arenaLabel)}</b>`;
 }
 
-function renderMatchBlock(teamNo, matchNo, st, shiftTimes, lineups){
+// ----------------------------
+// Progress (klar/nu-rad) + Matchscreen
+// ----------------------------
+function loadProgress(teamNo, matchNo){
+  const poolId = getCurrentPoolId();
+  const raw = localStorage.getItem(poolProgressKey(poolId, teamNo, matchNo));
+  const p = raw ? safeParseJSON(raw, null) : null;
+  if (p && Number.isFinite(p.index)) return { index: Math.max(0, p.index|0) };
+  return { index: 0 };
+}
+function saveProgress(teamNo, matchNo, index){
+  const poolId = getCurrentPoolId();
+  localStorage.setItem(poolProgressKey(poolId, teamNo, matchNo), JSON.stringify({ index: Math.max(0, index|0) }));
+}
+
+function computeCurrentMatchPlan(){
+  const teamNo = getTeam();
+  const matchNo = getMatchNo();
+  const st = loadStateFor(teamNo, matchNo);
+
+  const periodsCount = Math.min(3, Math.max(1, parseInt(st.periodsCount,10)||1));
+  const periodMin = parseInt(st.periodMin,10)||15;
+  const shiftSec = parseInt(st.shiftSec,10)||90;
+
+  const totalMinutes = periodMin * periodsCount; // inga pauser
+  const shiftTimes = buildShiftTimes(totalMinutes, shiftSec);
+
+  // globalCounts reset för matchskärm (vi vill samma lineup som tabellen → renderAll använder globalCounts över matcher)
+  // För matchläge: vi räknar lineup för just denna match, deterministiskt.
+  const globalCounts = {};
+  const lineups = makeLineupsForMatch(st, globalCounts, shiftTimes);
+
+  return { teamNo, matchNo, st, shiftTimes, lineups };
+}
+
+let wakeLock = null;
+async function tryWakeLockOn(){
+  try{
+    if (!('wakeLock' in navigator)) return;
+    wakeLock = await navigator.wakeLock.request('screen');
+  }catch{}
+}
+async function tryWakeLockOff(){
+  try{
+    if (wakeLock){
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  }catch{}
+}
+
+function openMatchscreen(){
+  const ov = $("matchOverlay");
+  if (!ov) return;
+
+  const { teamNo, matchNo, st, shiftTimes, lineups } = computeCurrentMatchPlan();
+  const prog = loadProgress(teamNo, matchNo);
+
+  ov.classList.remove("hidden");
+  ov.setAttribute("aria-hidden", "false");
+
+  // info
+  const info = $("matchInfo");
+  const badge = $("matchBadge");
+  const miniGoalie = $("miniGoalie");
+  const miniShift = $("miniShift");
+  const miniTime = $("miniTime");
+
+  const date = st.matchDate || "—";
+  const time = st.matchTime || "—";
+  const opp  = st.opponent || "—";
+  const plan = `Plan ${st.arena||"—"}`;
+  if (info) info.textContent = `Lag ${teamNo} • Match ${matchNo} • ${date} ${time} • ${opp} • ${plan}`;
+
+  if (miniGoalie) miniGoalie.textContent = st.goalie || "—";
+  if (miniShift) miniShift.textContent = `${st.shiftSec||"—"}s`;
+
+  // clamp
+  const max = Math.max(0, shiftTimes.length - 1);
+  const idx = Math.min(Math.max(0, prog.index), max);
+
+  // render
+  renderMatchscreenState(shiftTimes, lineups, idx);
+
+  // wake lock
+  tryWakeLockOn();
+}
+
+function closeMatchscreen(){
+  const ov = $("matchOverlay");
+  if (!ov) return;
+  ov.classList.add("hidden");
+  ov.setAttribute("aria-hidden","true");
+  tryWakeLockOff();
+}
+
+function renderMatchscreenState(shiftTimes, lineups, idx){
+  const badge = $("matchBadge");
+  const nowEl  = $("nowLineup");
+  const nextEl = $("nextLineup");
+  const miniTime = $("miniTime");
+
+  const total = shiftTimes.length || 1;
+  if (badge) badge.textContent = `Byte ${Math.min(idx+1,total)}/${total}`;
+
+  const now = lineups[idx] || [];
+  const next = lineups[idx+1] || [];
+
+  if (nowEl) nowEl.textContent = now.length ? now.map(shortName).join(" • ") : "—";
+  if (nextEl) nextEl.textContent = next.length ? next.map(shortName).join(" • ") : "—";
+
+  if (miniTime) miniTime.textContent = shiftTimes[idx] || "—";
+}
+
+function nextShift(){
+  const { teamNo, matchNo, shiftTimes, lineups } = computeCurrentMatchPlan();
+  const prog = loadProgress(teamNo, matchNo);
+
+  const max = Math.max(0, shiftTimes.length - 1);
+  const idx = Math.min(Math.max(0, prog.index), max);
+
+  // mark current as done by moving index forward
+  const nextIdx = Math.min(idx + 1, max);
+  saveProgress(teamNo, matchNo, nextIdx);
+
+  renderAll(); // update table highlight/done
+  renderMatchscreenState(shiftTimes, lineups, nextIdx);
+}
+
+function undoShift(){
+  const { teamNo, matchNo, shiftTimes, lineups } = computeCurrentMatchPlan();
+  const prog = loadProgress(teamNo, matchNo);
+  const idx = Math.max(0, prog.index|0);
+  const prevIdx = Math.max(0, idx - 1);
+  saveProgress(teamNo, matchNo, prevIdx);
+
+  renderAll();
+  renderMatchscreenState(shiftTimes, lineups, prevIdx);
+}
+
+// ----------------------------
+// Render all matches for selected team
+// ----------------------------
+function renderMatchBlock(teamNo, matchNo, st, shiftTimes, lineups, progressIndex){
   const periodsCount = Math.min(3, Math.max(1, parseInt(st.periodsCount,10)||1));
   const periodMin = parseInt(st.periodMin,10)||15;
   const shiftSec = parseInt(st.shiftSec,10)||90;
@@ -1016,26 +1124,26 @@ function renderMatchBlock(teamNo, matchNo, st, shiftTimes, lineups){
         <table>
           <thead><tr><th>#</th><th>Tid kvar</th><th>På plan</th></tr></thead>
           <tbody>
-            ${shiftTimes.map((t,i)=>`
-              <tr>
-                <td>${i+1}</td>
-                <td class="nowrap">${escapeHtml(t)}</td>
-                <td>${escapeHtml(lineupToShortText(lineups[i]||[]))}</td>
-              </tr>
-            `).join("")}
+            ${shiftTimes.map((t,i)=>{
+              const cls = (i < progressIndex) ? "done" : (i === progressIndex ? "current" : "");
+              return `
+                <tr class="${cls}">
+                  <td>${i+1}</td>
+                  <td class="nowrap">${escapeHtml(t)}</td>
+                  <td>${escapeHtml(lineupToShortText(lineups[i]||[]))}</td>
+                </tr>
+              `;
+            }).join("")}
           </tbody>
         </table>
         <div class="small" style="margin-top:6px;">
-          Målet är att undvika dubbla byten och samtidigt hålla jämn speltid.
+          Rader markeras som <b>klara</b> när du trycker “Nästa byte” i matchläge.
         </div>
       </div>
     </div>
   `;
 }
 
-// ----------------------------
-// Render all matches for selected team
-// ----------------------------
 function renderAll(){
   const msg = $("msg");
   const err = validateCurrentMatch();
@@ -1059,11 +1167,14 @@ function renderAll(){
     const periodMin = parseInt(st.periodMin,10)||15;
     const shiftSec = parseInt(st.shiftSec,10)||90;
 
-    const totalMinutes = periodMin * periodsCount; // inga pauser – bara total tid
+    const totalMinutes = periodMin * periodsCount;
     const shiftTimes = buildShiftTimes(totalMinutes, shiftSec);
     const lineups = makeLineupsForMatch(st, globalCounts, shiftTimes);
 
-    html += renderMatchBlock(teamNo, m, st, shiftTimes, lineups);
+    const prog = loadProgress(teamNo, String(m));
+    const idx = Math.min(Math.max(0, prog.index|0), Math.max(0, shiftTimes.length-1));
+
+    html += renderMatchBlock(teamNo, m, st, shiftTimes, lineups, idx);
   }
 
   out.innerHTML = html || `<div class="small">Inga matcher.</div>`;
@@ -1082,40 +1193,7 @@ function exportPrint(){
 }
 
 // ----------------------------
-// Wake Lock (Matchläge)
-// ----------------------------
-let wakeLock = null;
-async function enableWakeLock(){
-  try{
-    if (!('wakeLock' in navigator)) {
-      alert("Wake Lock stöds inte i denna webbläsare.");
-      return;
-    }
-    wakeLock = await navigator.wakeLock.request('screen');
-    alert("Matchläge: skärmen hålls vaken ✅");
-    wakeLock.addEventListener('release', () => {
-      // released
-    });
-  }catch(e){
-    alert("Kunde inte aktivera wake lock.");
-  }
-}
-async function disableWakeLock(){
-  try{
-    if (wakeLock){
-      await wakeLock.release();
-      wakeLock = null;
-      alert("Matchläge avstängt.");
-    }
-  }catch{}
-}
-function toggleMatchMode(){
-  if (wakeLock) disableWakeLock();
-  else enableWakeLock();
-}
-
-// ----------------------------
-// Global click handler (ALDRIG döda knappar)
+// Global click handler
 // ----------------------------
 document.addEventListener("click", (e)=>{
   const el = e.target.closest("[data-action],[data-nav]");
@@ -1133,11 +1211,11 @@ document.addEventListener("click", (e)=>{
 
   e.preventDefault();
 
-  // routing/actions
   if (action === "open-trupp") return openTrupp();
   if (action === "close-trupp") return closeTrupp();
   if (action === "new-pool") return createPool();
   if (action === "stats") return alert("Kommer snart: Statistik målvakter.");
+
   if (action === "start-pool"){
     const id = el.getAttribute("data-id") || "";
     setCurrentPoolId(id);
@@ -1152,7 +1230,6 @@ document.addEventListener("click", (e)=>{
     return deletePool(id);
   }
 
-  // trupp actions
   if (action === "add-player") return addPlayer();
   if (action === "add-coach") return addCoach();
   if (action === "remove-player"){
@@ -1176,13 +1253,16 @@ document.addEventListener("click", (e)=>{
     return saveEdit(kind, idx, inp ? inp.value : "");
   }
 
-  // import/export
   if (action === "import-json") return doImport();
   if (action === "export-json") return doExport();
 
-  // poolspel tools
   if (action === "export-print") return exportPrint();
-  if (action === "match-mode") return toggleMatchMode();
+
+  // MATCHSCREEN
+  if (action === "open-matchscreen") return openMatchscreen();
+  if (action === "close-matchscreen") return closeMatchscreen();
+  if (action === "next-shift") return nextShift();
+  if (action === "undo-shift") return undoShift();
 });
 
 // Enter saves edit in roster list
@@ -1195,8 +1275,16 @@ document.addEventListener("keydown", (e)=>{
   saveEdit(kind, idx, inp.value);
 });
 
+// close matchscreen on ESC
+document.addEventListener("keydown", (e)=>{
+  if (e.key === "Escape"){
+    const ov = $("matchOverlay");
+    if (ov && !ov.classList.contains("hidden")) closeMatchscreen();
+  }
+});
+
 // ----------------------------
-// Form change autosave
+// Form autosave
 // ----------------------------
 function wireFormAutosave(){
   const ids = ["matchDate","matchTime","opponent","arena","onCourt","periodsCount","periodMin","shiftSec","goalie"];
@@ -1258,18 +1346,14 @@ async function registerSW(){
   try{
     const reg = await navigator.serviceWorker.register('./sw.js');
 
-    // auto update check
     setInterval(()=>{ try{ reg.update(); }catch{} }, 30 * 1000);
 
-    // reload when new sw takes control
     navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-      // avoid infinite loops
       if (window.__reloading) return;
       window.__reloading = true;
       location.reload();
     });
 
-    // if waiting -> activate now
     if (reg.waiting){
       reg.waiting.postMessage({type:'SKIP_WAITING'});
     }
@@ -1279,7 +1363,6 @@ async function registerSW(){
       if (!nw) return;
       nw.addEventListener('statechange', ()=>{
         if (nw.state === 'installed' && navigator.serviceWorker.controller){
-          // activate immediately
           nw.postMessage({type:'SKIP_WAITING'});
         }
       });
@@ -1291,7 +1374,6 @@ async function registerSW(){
 // Init
 // ----------------------------
 function init(){
-  // version pill
   const vp = $("versionPill");
   if (vp) vp.textContent = APP_VERSION;
 

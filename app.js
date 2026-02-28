@@ -1,4 +1,17 @@
-const APP_VERSION = 'v66';
+const APP_VERSION = 'v67';
+
+let matchLockActive = false;
+let matchLockHash = '';
+let wakeLockObj = null;
+async function requestWakeLock(){
+  try{ if('wakeLock' in navigator){ wakeLockObj = await navigator.wakeLock.request('screen'); } }
+  catch(e){ console.warn('WakeLock failed', e); }
+}
+function releaseWakeLock(){
+  try{ if(wakeLockObj){ wakeLockObj.release(); wakeLockObj=null; } }
+  catch(e){}
+}
+
 'use strict';
 
 function escapeHtml(s){
@@ -371,6 +384,9 @@ function renderGoalieStats(){
 }
 
 function showHome() {
+  matchLockActive = false;
+  releaseWakeLock();
+  document.body.classList.remove('match-locked');
   viewHome.style.display = 'block';
   viewPool.style.display = 'none';
   viewMatch.style.display = 'none';
@@ -379,6 +395,9 @@ function showHome() {
   renderPools();
 }
 function showPool() {
+  matchLockActive = false;
+  releaseWakeLock();
+  document.body.classList.remove('match-locked');
   viewHome.style.display = 'none';
   viewPool.style.display = 'block';
   viewMatch.style.display = 'none';
@@ -392,6 +411,7 @@ function showMatch() {
   viewMatch.style.display = 'block';
   viewStats.style.display = 'none';
   setHash('match');
+  try{ const p = loadPools().find(x=>x.id===state.activePoolId); const dt = p?.date ? formatDate(p.date) : ''; const el=document.getElementById('matchDateText'); if(el) el.textContent = dt; }catch(e){}
   renderMatch();
 }
 
@@ -563,7 +583,7 @@ function openMatch(teamNo, matchNo){
 function loadMatchIntoForm(){
   const s = loadState(currentMatch.team, currentMatch.match);
 
-  document.getElementById('matchDate').value = s.matchDate || '';
+  document.getElementById('matchDate')?.value = s.matchDate || '';
   document.getElementById('matchTime').value = s.matchTime || '';
   document.getElementById('opponent').value = s.opponent || '';
   document.getElementById('arena').value = s.arena || '1';
@@ -587,7 +607,7 @@ function currentFormState(){
     playersArr.push(document.getElementById(`p${i}`)?.value || '');
   }
   return {
-    matchDate: document.getElementById('matchDate').value || '',
+    matchDate: document.getElementById('matchDate')?.value || '',
     matchTime: document.getElementById('matchTime').value || '',
     opponent: document.getElementById('opponent').value || '',
     arena: document.getElementById('arena').value || '1',
@@ -751,6 +771,11 @@ function autoSave(){
 /* ---------- Routing ---------- */
 function applyRoute(){
   const h = (location.hash || '#home').toLowerCase();
+  if(matchLockActive && h !== '#match'){
+    location.hash = matchLockHash || '#match';
+    return;
+  }
+  if(h === '#match') matchLockHash = '#match';
   if(h === '#match'){ showMatch(); return; }
   if(h === '#pool'){ showPool(); return; }
   showHome();
@@ -818,4 +843,20 @@ window.addEventListener('load', () => {
   renderPoolspelList();
   applyRoute();
 });
-window.addEventListener('hashchange', applyRoute);
+// Stats modal
+  document.getElementById('goalieStatsBtn')?.addEventListener('click', openStatsModal);
+  document.getElementById('closeStatsBtn')?.addEventListener('click', closeStatsModal);
+  document.getElementById('refreshStatsBtn')?.addEventListener('click', renderGoalieStats);
+  document.getElementById('exportStatsBtn')?.addEventListener('click', () => {
+    const rows = computeGoalieStats();
+    const txt = rows.map(([n,c])=>`${c}\t${n}`).join('\n');
+    (navigator.clipboard?.writeText(txt) || Promise.reject()).then(()=>toast('Kopierat')).catch(()=>toast('Kunde inte kopiera'));
+  });
+  document.getElementById('statsModal')?.addEventListener('click', (e)=>{ if(e.target?.id==='statsModal') closeStatsModal(); });
+
+  // Match exit
+  document.getElementById('exitMatchBtn')?.addEventListener('click', () => {
+    if(confirm('Avsluta matchläge?')){ matchLockActive=false; releaseWakeLock(); document.body.classList.remove('match-locked'); location.hash = '#pool'; }
+  });
+
+  window.addEventListener('hashchange', applyRoute);

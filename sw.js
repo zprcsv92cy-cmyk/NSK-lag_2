@@ -1,64 +1,65 @@
-/* sw.js v63 */
+/* sw.js - GitHub Pages-safe */
 'use strict';
 
-const CACHE_NAME = 'nsk-lag-cache-v63';
-const CORE_ASSETS = [
+const CACHE_VERSION = 'latest-1';
+const CACHE_NAME = `nsk-cache-${CACHE_VERSION}`;
+
+const ASSETS = [
   './',
   './index.html',
-  './app.css?v=63',
-  './app.js?v=63',
+  './app.css?v=latest',
+  './app.js?v=latest',
+  './manifest.webmanifest',
   './icon-192.png',
-  './icon-512.png',
-  './manifest.webmanifest'
+  './icon-512.png'
 ];
 
-self.addEventListener('install', (event)=>{
+function toScopeURL(path){
+  return new URL(path, self.registration.scope).toString();
+}
+
+self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS)).catch(()=>{})
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const reqs = ASSETS.map(p => new Request(toScopeURL(p), { cache: 'reload' }));
+    await cache.addAll(reqs);
+  })());
 });
 
-self.addEventListener('activate', (event)=>{
-  event.waitUntil((async ()=>{
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys.map(k => (k === CACHE_NAME ? null : caches.delete(k))));
     await self.clients.claim();
   })());
 });
 
-self.addEventListener('message', (event)=>{
-  if (event.data && event.data.type === 'SKIP_WAITING'){
-    self.skipWaiting();
-  }
-});
-
-self.addEventListener('fetch', (event)=>{
+self.addEventListener('fetch', (event) => {
   const req = event.request;
-  const url = new URL(req.url);
-
   if (req.method !== 'GET') return;
-  if (url.origin !== location.origin) return;
+
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
 
   const accept = req.headers.get('accept') || '';
+  const isHTML = req.mode === 'navigate' || accept.includes('text/html');
 
-  // HTML: network first
-  if (accept.includes('text/html') || url.pathname.endsWith('.html') || url.pathname === '/' ){
+  if (isHTML){
     event.respondWith((async ()=>{
       try{
-        const fresh = await fetch(req, { cache: 'no-store' });
+        const fresh = await fetch(req, { cache:'no-store' });
         const cache = await caches.open(CACHE_NAME);
-        cache.put(req, fresh.clone()).catch(()=>{});
+        cache.put(toScopeURL('./index.html'), fresh.clone()).catch(()=>{});
         return fresh;
       }catch{
-        const cached = await caches.match(req);
-        return cached || caches.match('./index.html');
+        const cached = await caches.match(toScopeURL('./index.html'));
+        return cached || new Response('Offline', {status:503, headers:{'content-type':'text/plain; charset=utf-8'}});
       }
     })());
     return;
   }
 
-  // assets: cache first
   event.respondWith((async ()=>{
     const cached = await caches.match(req);
     if (cached) return cached;
@@ -68,7 +69,7 @@ self.addEventListener('fetch', (event)=>{
       cache.put(req, fresh.clone()).catch(()=>{});
       return fresh;
     }catch{
-      return cached;
+      return new Response('', {status:504});
     }
   })());
 });

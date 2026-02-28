@@ -1,6 +1,6 @@
-/* v52 — adds “Gjort” tracking per shift-row (pool + team + match) */
+/* v53 — adds auto-scroll to next undone shift + clearer “done” styling */
 
-const APP_VERSION = "v52";
+const APP_VERSION = "v53";
 
 /* ---------------------------
    Default Team 18 roster
@@ -212,7 +212,7 @@ function kMatchCount(teamNo){ return `${poolPrefix()}matchCount_team_${teamNo}`;
 function kTeamCoaches(teamNo){ return `${poolPrefix()}team_coaches_team_${teamNo}`; }
 function kState(teamNo, matchNo){ return `${poolPrefix()}state_team_${teamNo}_match_${matchNo}`; }
 
-// v52: shift done key
+// Shift done keys
 function kShiftDone(teamNo, matchNo, i){
   return `${poolPrefix()}shiftDone_team_${teamNo}_match_${matchNo}_i_${i}`;
 }
@@ -223,7 +223,6 @@ function setShiftDone(teamNo, matchNo, i, done){
   localStorage.setItem(kShiftDone(teamNo, matchNo, i), done ? "1" : "0");
 }
 function resetAllShiftDone(teamNo, matchNo){
-  // remove only current match keys
   const prefix = `${poolPrefix()}shiftDone_team_${teamNo}_match_${matchNo}_i_`;
   for (let j=localStorage.length-1;j>=0;j--){
     const k = localStorage.key(j);
@@ -485,6 +484,39 @@ function shortName(full){
   return `${parts[0]} ${parts[parts.length-1][0].toUpperCase()}`;
 }
 
+/* ---------------------------
+   v53: auto-scroll to next undone
+---------------------------- */
+let __lastToggleIndex = null;
+
+function findNextUndoneIndex(teamNo, matchNo, totalRows, startFromIdx){
+  if (!totalRows || totalRows <= 0) return null;
+
+  const start = Math.min(Math.max(0, startFromIdx|0), totalRows-1);
+
+  // scan forward
+  for (let i=start; i<totalRows; i++){
+    if (!loadShiftDone(teamNo, matchNo, i)) return i;
+  }
+  // wrap around
+  for (let i=0; i<start; i++){
+    if (!loadShiftDone(teamNo, matchNo, i)) return i;
+  }
+  // all done
+  return null;
+}
+
+function scrollToShiftRow(i){
+  if (i == null) return;
+  const row = document.querySelector(`tr[data-shift-row="${i}"]`);
+  if (!row) return;
+  try{
+    row.scrollIntoView({behavior:"smooth", block:"center"});
+    row.classList.add("shiftFocus");
+    setTimeout(()=>row.classList.remove("shiftFocus"), 900);
+  } catch {}
+}
+
 function renderSchedule(){
   const msg = document.getElementById("msg");
   const out = document.getElementById("output");
@@ -523,12 +555,13 @@ function renderSchedule(){
         ${times.map((t,i)=>{
           const done = loadShiftDone(teamNo, matchNo, i);
           return `
-            <tr data-shift-row="${i}">
+            <tr data-shift-row="${i}" class="${done ? "shiftDoneRow" : ""}">
               <td>${i+1}</td>
               <td>${escapeHtml(t)}</td>
               <td>${escapeHtml((rot[i]||[]).map(shortName).join(", ") || "—")}</td>
               <td>
-                <button class="btn ${done ? "btn--primary" : ""}" data-act="toggleShift" data-i="${i}">
+                <button class="btn btnShift ${done ? "btn--done" : "btn--todo"}"
+                        data-act="toggleShift" data-i="${i}">
                   ${done ? "✔ Gjort" : "Markera"}
                 </button>
               </td>
@@ -539,13 +572,21 @@ function renderSchedule(){
     </table>
 
     <div class="muted" style="margin-top:10px">
-      Tryck “Markera” för att spara att bytet är gjort (sparas per pool+lag+match).
+      Efter att du markerar en rad scrollar appen automatiskt till nästa “ej gjort”.
     </div>
   `;
+
+  // v53: after re-render, auto-scroll to next undone
+  if (__lastToggleIndex != null){
+    const next = findNextUndoneIndex(teamNo, matchNo, times.length, __lastToggleIndex + 1);
+    // if all done, scroll to last toggled row
+    scrollToShiftRow(next != null ? next : __lastToggleIndex);
+    __lastToggleIndex = null;
+  }
 }
 
 /* ---------------------------
-   Statistics (Goalies) — unchanged from v51
+   Statistics (Goalies) — same as before
 ---------------------------- */
 function renderStats(){
   const out = document.getElementById("statsOut");
@@ -636,9 +677,6 @@ function renderStats(){
           `).join("")}
         </tbody>
       </table>
-      <div class="muted" style="margin-top:10px">
-        Tips: För statistik per specifikt poolspel, öppna poolen först och gå sedan till Statistik.
-      </div>
     </div>
   `;
 }
@@ -973,9 +1011,12 @@ function wire(){
       const i = parseInt(btn.getAttribute("data-i")||"0",10);
       const teamNo = getTeamNo();
       const matchNo = getMatchNo();
+
       const nowDone = loadShiftDone(teamNo, matchNo, i);
       setShiftDone(teamNo, matchNo, i, !nowDone);
-      renderSchedule();
+
+      __lastToggleIndex = i;   // v53: remember which was pressed
+      renderSchedule();        // will auto-scroll after render
       return;
     }
   });

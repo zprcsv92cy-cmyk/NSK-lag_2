@@ -1,20 +1,17 @@
-const CACHE_NAME = 'nsk-cache-v43';
+const CACHE_NAME = 'nsk-cache-v44';
 const URLS = [
   './',
   './index.html',
-  './app.js?v=43',
-  './app.css?v=43',
+  './app.js?v=44',
+  './app.css?v=44',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
-  // Activate updated SW immediately
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(URLS)).catch(()=>{})
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(URLS)).catch(()=>{}));
 });
 
 self.addEventListener('activate', (event) => {
@@ -25,7 +22,6 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-// Network-first for HTML/CSS/JS so updates show up quickly on GitHub Pages
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
@@ -35,6 +31,7 @@ self.addEventListener('fetch', (event) => {
   const isHTML = req.mode === 'navigate' || accept.includes('text/html');
   const isAsset = url.pathname.endsWith('.css') || url.pathname.endsWith('.js') || url.pathname.endsWith('.webmanifest');
 
+  // Network-first for HTML + core assets to avoid “gammal fil”
   if (isHTML || isAsset){
     event.respondWith((async () => {
       try{
@@ -50,7 +47,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for images
+  // Cache-first for everything else
   event.respondWith((async () => {
     const cached = await caches.match(req);
     if (cached) return cached;

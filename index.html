@@ -44,50 +44,47 @@
   <div id="versionBox" class="version">v39</div>
 </header>
 
-
 <!-- STARTSIDA -->
 <section id="view-home" class="view active">
-
-  <button class="big-btn" onclick="go('trupp')">
-    Truppen team 18
-  </button>
-
-  <button class="big-btn" onclick="go('poolspel')">
-    Skapa nytt poolspel
-  </button>
-
-  <button class="big-btn disabled">
-    Statistik målvakter
-  </button>
-
+  <button class="big-btn" onclick="go('trupp')">Truppen team 18</button>
+  <button class="big-btn" onclick="go('poolspel')">Skapa nytt poolspel</button>
+  <button class="big-btn disabled">Statistik målvakter</button>
 </section>
-
 
 <!-- TRUPP -->
 <section id="view-trupp" class="view">
-
   <button class="back-btn" onclick="go('home')">← Startsida</button>
 
-  <h2>Spelare & Ledare</h2>
+  <h2>Truppen team 18</h2>
 
-  <div id="playerList"></div>
+  <div class="card">
+    <h3>Spelare</h3>
+    <div id="playerList"></div>
+    <button onclick="addPlayer()">+ Lägg till spelare</button>
+  </div>
 
-  <button onclick="addPlayer()">+ Lägg till</button>
+  <div class="card" style="margin-top:12px;">
+    <h3>Tränare</h3>
+    <div id="coachList"></div>
+    <button onclick="addCoach()">+ Lägg till tränare</button>
+  </div>
 
+  <div class="card" style="margin-top:12px;">
+    <h3>Import (backup)</h3>
+    <div class="small">
+      Välj din <b>nsk-lag-backup.json</b> så importeras spelare + tränare.
+    </div>
+    <input id="importFile" type="file" accept="application/json">
+    <div id="importMsg" class="small" style="margin-top:8px;"></div>
+  </div>
 </section>
-
 
 <!-- POOLSPEL -->
 <section id="view-poolspel" class="view">
-
   <button class="back-btn" onclick="go('home')">← Startsida</button>
-
   <h2>Poolspel</h2>
-
   <div>Här kommer poolspelet...</div>
-
 </section>
-
 
 </body>
 </html>

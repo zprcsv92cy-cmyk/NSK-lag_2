@@ -1,4 +1,4 @@
-const APP_VERSION = 'v63';
+const APP_VERSION = 'v64';
 'use strict';
 
 function escapeHtml(s){

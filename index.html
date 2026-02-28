@@ -1,252 +1,212 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0b0f1a" />
   <title>NSK Lag</title>
 
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icon-192.png" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./app.css?v=63">
 
-  <link rel="stylesheet" href="app.css" />
+  <!-- NUCLEAR RESET: https://.../?reset=1 -->
+  <script>
+  (async () => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('reset') !== '1') return;
+
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+
+    const url = new URL(location.href);
+    url.searchParams.delete('reset');
+    location.replace(url.toString());
+  })();
+  </script>
+
+  <script defer src="./app.js?v=63"></script>
 </head>
+
 <body>
-  <div id="app">
-    <header class="topbar">
-      <div class="brand">
-        <img class="logo" src="icon-192.png" alt="NSK" />
-        <div class="brandText">
-          <div class="brandTitle">NSK Lag</div>
-          <div class="brandSub">Poolspel • Lag • Byten • PDF</div>
+  <header class="header">
+    <img src="icon-192.png" class="logo" alt="NSK">
+    <div class="headText">
+      <h1>NSK Lag</h1>
+      <div class="subtitle">Poolspel • Lag • Byten • PDF</div>
+    </div>
+    <div id="versionBox" class="versionPill">v42</div>
+  </header>
+
+  <!-- STARTSIDA -->
+  <main class="page">
+    <section class="homeCard">
+      <button class="homeBtn primary" id="openRosterBtn" type="button">Truppen team 18</button>
+      <button class="homeBtn primary" id="newPoolspelBtn" type="button">Skapa nytt poolspel</button>
+      <button class="homeBtn secondary" id="goalieStatsBtn" type="button">Statistik målvakter</button>
+    </section>
+
+    <section class="savedCard">
+      <h2>Sparade poolspel</h2>
+      <div id="poolspelList" class="small">Inga sparade poolspel ännu.</div>
+    </section>
+  <!-- POOLSPEL VIEW -->
+  <main class="page" id="poolView" style="display:none;">
+    <section class="navRow">
+      <button class="navBtn" id="backToHomeBtn" type="button">← Startsida</button>
+      <div class="pill" id="currentPoolLabel">Poolspel</div>
+    </section>
+
+    <section class="sectionCard">
+      <h2 id="poolTitle">Poolspel</h2>
+      <div class="small" id="poolMeta"></div>
+
+      <div class="grid2" style="margin-top:12px;">
+        <div>
+          <label class="label">Lag</label>
+          <div id="poolTeamButtons" class="teamButtons" role="group" aria-label="Välj lag"><button type="button" class="teamBtn" data-team="1">Lag 1</button><button type="button" class="teamBtn" data-team="2">Lag 2</button><button type="button" class="teamBtn" data-team="3">Lag 3</button></div><select id="poolTeamSelect" class="select" style="display:none;"></select>
+        </div>
+        <div>
+          <label class="label">Antal matcher</label>
+          <select id="poolMatchCount" class="select"></select>
+        </div>
+        <div>
+          <label class="label">Match</label>
+          <select id="poolMatchSelect" class="select"></select>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:10px;">
+          <button class="homeBtn primary" id="openMatchBtn" type="button" style="width:100%;">Öppna match</button>
         </div>
       </div>
-      <div class="pill" id="versionPill" aria-label="Version">v62</div>
-    </header>
+    </section>
+  </main>
 
-    <nav class="tabs" aria-label="Navigering">
-      <a href="#home" class="tab" id="tabHome">Startsida</a>
-      <a href="#pool" class="tab" id="tabPool">Poolspel</a>
-      <a href="#match" class="tab" id="tabMatch">Match</a>
-    </nav>
+  <!-- MATCH EDITOR VIEW -->
+  <main class="page" id="matchView" style="display:none;">
+    <section class="navRow">
+      <button class="navBtn" id="backToPoolBtn" type="button">← Poolspel</button>
+      <div class="pill" id="matchPill">Lag 1 · Match 1</div>
+    </section>
 
-    <main class="main">
-      <!-- HOME -->
-      <section id="homeView" class="view">
-        <div class="card">
-          <button id="openRosterBtn" class="btn primary">Truppen team 18</button>
-          <button id="createPoolBtn" class="btn primary">Skapa nytt poolspel</button>
-          <button id="statsBtn" class="btn ghost">Statistik målvakter</button>
+    <section class="sectionCard">
+      <div class="grid2">
+        <div>
+          <label class="label">Datum</label>
+          <input id="matchDate" class="textInput" placeholder="YYYY-MM-DD" />
         </div>
-
-        <div class="card">
-          <h2>Sparade poolspel</h2>
-          <div id="poolList"></div>
+        <div>
+          <label class="label">Starttid</label>
+          <input id="matchTime" class="textInput" placeholder="HH:MM" />
         </div>
-      </section>
-
-      <!-- POOL -->
-      <section id="poolView" class="view hidden">
-        <div class="row between">
-          <button id="poolBackBtn" class="btn ghost">← Tillbaka</button>
-          <div class="row gap">
-            <button id="poolCompleteBtn" class="btn ghost">Markera klar</button>
-            <button id="poolDeleteBtn" class="btn danger">Ta bort</button>
-          </div>
+        <div>
+          <label class="label">Motståndare</label>
+          <input id="opponent" class="textInput" placeholder="Skriv motståndare" />
         </div>
-
-        <h1 id="poolTitle">Pool</h1>
-        <div id="poolMeta" class="muted"></div>
-
-        <div class="card">
-          <div class="row between">
-            <h2>Matcher</h2>
-            <button id="poolNewMatchBtn" class="btn primary small">Ny match</button>
-          </div>
-          <div class="row gap wrap">
-            <label class="field small">
-              <span>Antal matcher</span>
-              <select id="poolMatchCount"></select>
-            </label>
-          </div>
-          <div id="poolMatches"></div>
+        <div>
+          <label class="label">Plan</label>
+          <select id="arena" class="select"></select>
         </div>
-      </section>
-
-      <!-- MATCH -->
-      <section id="matchView" class="view hidden">
-        <div class="row between">
-          <button id="backToPoolBtn" class="btn ghost">← Tillbaka</button>
-          <button id="matchModeBtn" class="btn primary">Matchläge</button>
+        <div>
+          <label class="label">Antal i laget</label>
+          <select id="teamSize" class="select"></select>
         </div>
-
-        <h1 id="matchTitle">Match</h1>
-        <div id="matchMeta" class="muted"></div>
-
-        <div class="card">
-          <div class="row gap wrap">
-            <!-- Team selector (buttons) -->
-            <div class="teamButtons" role="group" aria-label="Välj lag">
-              <button type="button" class="btn chip" data-teambtn="1" aria-pressed="true">Lag 1</button>
-              <button type="button" class="btn chip" data-teambtn="2" aria-pressed="false">Lag 2</button>
-              <button type="button" class="btn chip" data-teambtn="3" aria-pressed="false">Lag 3</button>
-            </div>
-
-            <!-- keep select for compatibility (hidden) -->
-            <select id="poolTeamSelect" class="hidden" aria-hidden="true">
-              <option value="1">Lag 1</option>
-              <option value="2">Lag 2</option>
-              <option value="3">Lag 3</option>
-            </select>
-
-            <label class="field small">
-              <span>Match</span>
-              <select id="poolMatchSelect"></select>
-            </label>
-          </div>
-
-          <div class="grid2">
-            <label class="field">
-              <span>Datum</span>
-              <input id="matchDate" type="date" />
-            </label>
-            <label class="field">
-              <span>Starttid</span>
-              <input id="matchTime" type="time" />
-            </label>
-            <label class="field">
-              <span>Motståndare</span>
-              <input id="opponent" type="text" placeholder="Skriv motståndare" />
-            </label>
-            <label class="field">
-              <span>Plan</span>
-              <select id="arenaSelect">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="grid2">
-            <label class="field">
-              <span>Antal i laget</span>
-              <select id="teamSizeSelect"></select>
-            </label>
-            <label class="field">
-              <span>Antal på plan</span>
-              <select id="onCourtSelect"></select>
-            </label>
-            <label class="field">
-              <span>Perioder</span>
-              <select id="periodsCountSelect">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>Periodtid (min)</span>
-              <select id="periodMinSelect"></select>
-            </label>
-          </div>
-
-          <label class="field">
-            <span>Byten (sek)</span>
-            <select id="shiftSecSelect"></select>
-          </label>
-
-          <div class="grid2">
-            <label class="field">
-              <span>Tränare</span>
-              <select id="coachSelect"></select>
-            </label>
-            <label class="field">
-              <span>Målvakt</span>
-              <select id="goalieSelect"></select>
-            </label>
-          </div>
-
-          <div class="card">
-            <h2>Spelare på plan</h2>
-            <div id="playersContainer"></div>
-          </div>
-
-          <div id="matchPill" class="pill muted"></div>
+        <div>
+          <label class="label">Antal på plan</label>
+          <select id="onCourt" class="select"></select>
         </div>
-      </section>
-    </main>
-
-    <!-- ROSTER MODAL -->
-    <div id="rosterModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Truppen team 18">
-      <div class="modalCard">
-        <div class="row between">
-          <h2>Truppen team 18</h2>
-          <button id="closeRosterBtn" class="btn ghost">Stäng</button>
+        <div>
+          <label class="label">Perioder per match</label>
+          <select id="periodsCount" class="select"></select>
         </div>
+        <div>
+          <label class="label">Periodtid (min)</label>
+          <select id="periodMin" class="select"></select>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="label">Bytestid (sek)</label>
+          <select id="shiftSec" class="select"></select>
+        </div>
+      </div>
 
-        <div class="card">
+      <div class="small" style="margin-top:10px;">Allt sparas automatiskt.</div>
+    </section>
+
+    <section class="sectionCard" style="margin-top:14px;">
+      <h2>Spelare (denna match)</h2>
+      <div id="playersGrid" class="playersGrid"></div>
+
+      <div style="margin-top:14px;">
+        <label class="label">Målvakt</label>
+        <select id="goalie" class="select"></select>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label class="label">Tränare (för laget)</label>
+        <div id="coachChips" class="chips" aria-label="Välj tränare"></div><div class="small muted" style="margin-top:6px;">Tryck på tränare för att markera/avmarkera.</div>
+      </div>
+    </section>
+  </main>
+
+  
+  <section id="viewStats" class="view" style="display:none;">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h2 style="margin:0;">Statistik målvakter</h2>
+        <button id="backFromStatsBtn" class="ghost" type="button">Tillbaka</button>
+      </div>
+      <p class="small muted" style="margin-top:8px;">Visar antal matcher varje spelare varit vald som målvakt (alla poolspel).</p>
+      <div id="goalieStatsOut"></div>
+    </div>
+  </section>
+</main>
+
+  <!-- TRUPP MODAL -->
+  <div id="rosterModal" class="modal" aria-hidden="true">
+    <div class="modalSheet" role="dialog" aria-modal="true" aria-labelledby="rosterTitle">
+      <div class="modalHeader">
+        <div id="rosterTitle" class="modalTitle">Truppen team 18</div>
+        <button class="closeBtn" id="closeRosterBtn" type="button">Stäng</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="sectionCard">
           <h3>Spelare</h3>
-          <div class="row gap">
-            <input id="newPlayerInput" class="input" type="text" placeholder="Förnamn Efternamn" />
-            <button id="addPlayerBtn" class="btn primary small" type="button">Lägg till</button>
+          <div class="stack">
+            <input id="newPlayer" class="textInput" placeholder="Förnamn Efternamn" autocomplete="off" />
+            <button class="homeBtn primary" id="addPlayerBtn" type="button">Lägg till</button>
           </div>
-          <div id="playersList"></div>
+          <div id="playerList" class="list"></div>
         </div>
 
-        <div class="card">
+        <div class="sectionCard" style="margin-top:14px;">
           <h3>Tränare</h3>
-          <div class="row gap">
-            <input id="newCoachInput" class="input" type="text" placeholder="Förnamn Efternamn" />
-            <button id="addCoachBtn" class="btn primary small" type="button">Lägg till</button>
+          <div class="stack">
+            <input id="newCoach" class="textInput" placeholder="Förnamn Efternamn" autocomplete="off" />
+            <button class="homeBtn primary" id="addCoachBtn" type="button">Lägg till</button>
           </div>
-          <div id="coachesList"></div>
+          <div id="coachList" class="list"></div>
+        </div>
+
+        <div class="sectionCard" style="margin-top:14px;">
+          <h3>Import (backup)</h3>
+          <div class="small">
+            Öppna din <b>nsk-lag-backup.json</b>, kopiera hela innehållet och klistra in nedan.
+          </div>
+          <textarea id="importText" class="textArea" rows="6" placeholder='{"players":[...],"coaches":[...]}'></textarea>
+          <div class="rowBtns">
+            <button class="ghostBtn" id="importBtn" type="button">Importera</button>
+            <button class="ghostBtn" id="clearImportBtn" type="button">Rensa</button>
+          </div>
+          <div id="importMsg" class="small"></div>
         </div>
       </div>
     </div>
-
-    <!-- MATCH MODE OVERLAY -->
-    <div id="matchModeOverlay" class="matchMode hidden" role="dialog" aria-modal="true" aria-label="Matchläge">
-      <div class="matchModeCard">
-        <div class="row between">
-          <div>
-            <div class="mmTitle">Matchläge</div>
-            <div id="mmMeta" class="muted"></div>
-          </div>
-          <button id="mmCloseBtn" class="btn ghost">Avsluta</button>
-        </div>
-
-        <div class="mmGrid">
-          <div class="mmBox">
-            <div class="mmLabel">Nu på plan</div>
-            <div id="mmNow" class="mmText">—</div>
-          </div>
-          <div class="mmBox">
-            <div class="mmLabel">Nästa byte</div>
-            <div id="mmNext" class="mmText">—</div>
-          </div>
-        </div>
-
-        <button id="mmNextBtn" class="btn primary super" type="button">Nästa byte</button>
-
-        <div class="mmTableWrap">
-          <table class="mmTable">
-            <thead><tr><th>#</th><th>Spelare</th></tr></thead>
-            <tbody id="mmTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <script src="app.js" defer></script>
-  <script>
-    // GH Pages-safe SW (works in /repo/ or /)
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-    }
-  </script>
 </body>
 </html>

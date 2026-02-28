@@ -6,7 +6,7 @@
   <title>NSK Lag</title>
 
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./app.css?v=41">
+  <link rel="stylesheet" href="./app.css?v=42">
 
   <!-- NUCLEAR RESET: https://.../?reset=1 -->
   <script>
@@ -30,7 +30,7 @@
   })();
   </script>
 
-  <script defer src="./app.js?v=41"></script>
+  <script defer src="./app.js?v=42"></script>
 </head>
 
 <body>
@@ -40,7 +40,7 @@
       <h1>NSK Lag</h1>
       <div class="subtitle">Poolspel • Lag • Byten • PDF</div>
     </div>
-    <div id="versionBox" class="versionPill">v41</div>
+    <div id="versionBox" class="versionPill">v42</div>
   </header>
 
   <!-- STARTSIDA -->
@@ -55,6 +55,103 @@
       <h2>Sparade poolspel</h2>
       <div id="poolspelList" class="small">Inga sparade poolspel ännu.</div>
     </section>
+  <!-- POOLSPEL VIEW -->
+  <main class="page" id="poolView" style="display:none;">
+    <section class="navRow">
+      <button class="navBtn" id="backToHomeBtn" type="button">← Startsida</button>
+      <div class="pill" id="currentPoolLabel">Poolspel</div>
+    </section>
+
+    <section class="sectionCard">
+      <h2 id="poolTitle">Poolspel</h2>
+      <div class="small" id="poolMeta"></div>
+
+      <div class="grid2" style="margin-top:12px;">
+        <div>
+          <label class="label">Lag</label>
+          <select id="poolTeamSelect" class="select"></select>
+        </div>
+        <div>
+          <label class="label">Antal matcher</label>
+          <select id="poolMatchCount" class="select"></select>
+        </div>
+        <div>
+          <label class="label">Match</label>
+          <select id="poolMatchSelect" class="select"></select>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:10px;">
+          <button class="homeBtn primary" id="openMatchBtn" type="button" style="width:100%;">Öppna match</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MATCH EDITOR VIEW -->
+  <main class="page" id="matchView" style="display:none;">
+    <section class="navRow">
+      <button class="navBtn" id="backToPoolBtn" type="button">← Poolspel</button>
+      <div class="pill" id="matchPill">Lag 1 · Match 1</div>
+    </section>
+
+    <section class="sectionCard">
+      <div class="grid2">
+        <div>
+          <label class="label">Datum</label>
+          <input id="matchDate" class="textInput" placeholder="YYYY-MM-DD" />
+        </div>
+        <div>
+          <label class="label">Starttid</label>
+          <input id="matchTime" class="textInput" placeholder="HH:MM" />
+        </div>
+        <div>
+          <label class="label">Motståndare</label>
+          <input id="opponent" class="textInput" placeholder="Skriv motståndare" />
+        </div>
+        <div>
+          <label class="label">Plan</label>
+          <select id="arena" class="select"></select>
+        </div>
+        <div>
+          <label class="label">Antal i laget</label>
+          <select id="teamSize" class="select"></select>
+        </div>
+        <div>
+          <label class="label">Antal på plan</label>
+          <select id="onCourt" class="select"></select>
+        </div>
+        <div>
+          <label class="label">Perioder per match</label>
+          <select id="periodsCount" class="select"></select>
+        </div>
+        <div>
+          <label class="label">Periodtid (min)</label>
+          <select id="periodMin" class="select"></select>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="label">Bytestid (sek)</label>
+          <select id="shiftSec" class="select"></select>
+        </div>
+      </div>
+
+      <div class="small" style="margin-top:10px;">Allt sparas automatiskt.</div>
+    </section>
+
+    <section class="sectionCard" style="margin-top:14px;">
+      <h2>Spelare (denna match)</h2>
+      <div id="playersGrid" class="playersGrid"></div>
+
+      <div style="margin-top:14px;">
+        <label class="label">Målvakt</label>
+        <select id="goalie" class="select"></select>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label class="label">Tränare (för laget)</label>
+        <select id="coach" class="select" multiple size="6"></select>
+      </div>
+    </section>
+  </main>
+
   </main>
 
   <!-- TRUPP MODAL -->

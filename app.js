@@ -1,5 +1,30 @@
-const APP_VERSION = 'v42';
+const APP_VERSION = 'v43';
 'use strict';
+
+// --- Hard refresh helpers (iOS/Safari + GitHub Pages caching) ---
+// Use: add ?reset=1 to URL once. It will:
+// 1) unregister service workers
+// 2) clear caches
+// 3) force reload without parameters
+async function hardResetIfRequested(){
+  try{
+    const u = new URL(location.href);
+    if (u.searchParams.get('reset') !== '1') return;
+    if ('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if (window.caches){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    // Bust iOS page cache
+    u.searchParams.delete('reset');
+    u.searchParams.set('v', String(Date.now()));
+    location.replace(u.toString());
+  } catch {}
+}
+
 
 function escapeHtml(s){
   return String(s).replace(/[&<>\"']/g, m => ({
@@ -648,8 +673,10 @@ function applyRoute(){
 
 /* ---------- SW ---------- */
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=42').catch(()=>{});
+  hardResetIfRequested();
+
+window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js?v=43').catch(()=>{});
   });
 }
 

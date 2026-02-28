@@ -1,16 +1,19 @@
-/* app.js — v46 (match-editor direkt från "Påbörja") */
+/* app.js — v47 (komplett) */
 'use strict';
 
-const APP_VERSION = 'v46';
+const APP_VERSION = 'v47';
 
 // ---------- Helpers ----------
 const $ = (id) => document.getElementById(id);
+
 function escapeHtml(s){
   return String(s ?? '').replace(/[&<>"']/g, m => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
   }[m]));
 }
+
 function safeJSON(s){ try { return JSON.parse(s); } catch { return null; } }
+
 function uniq(arr){
   const out=[]; const seen=new Set();
   for(const x of (arr||[])){
@@ -22,12 +25,15 @@ function uniq(arr){
   }
   return out;
 }
+
 function showEl(el){ if(el) el.style.display=''; }
 function hideEl(el){ if(el) el.style.display='none'; }
+
 function nowYMD(){
   const d=new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+
 function bind(id, fn){
   const el=$(id);
   if(!el) return;
@@ -48,6 +54,7 @@ const DEFAULT_PLAYERS=[
   "Noé Bonnafous Sand","Oliver Engström","Oliver Zoumblios","Pelle Åstrand","Simon Misiorny","Sixten Bratt",
   "Theo Ydrenius","Viggo Kronvall","Yuktha reddy Semberi"
 ];
+
 const DEFAULT_COACHES=[
   "Fredrik Selander","Joakim Lund","Linus Öhman","Niklas Gauffin","Olle Åstrand","Peter Hasselberg",
   "Tommy Englund","William Åkvist"
@@ -59,28 +66,35 @@ function loadArr(key, fallback){
   const data=raw ? safeJSON(raw) : null;
   return Array.isArray(data) ? data : (fallback||[]);
 }
+
 function saveArr(key, arr){
   localStorage.setItem(key, JSON.stringify(uniq(arr).sort((a,b)=>a.localeCompare(b,'sv'))));
 }
+
 function ensureDefaultsOnce(){
   if(!localStorage.getItem(KEY_PLAYERS)) saveArr(KEY_PLAYERS, DEFAULT_PLAYERS);
   if(!localStorage.getItem(KEY_COACHES)) saveArr(KEY_COACHES, DEFAULT_COACHES);
 }
+
 function getRoster(){
   const players=uniq(loadArr(KEY_PLAYERS, []).concat(DEFAULT_PLAYERS)).sort((a,b)=>a.localeCompare(b,'sv'));
   const coaches=uniq(loadArr(KEY_COACHES, []).concat(DEFAULT_COACHES)).sort((a,b)=>a.localeCompare(b,'sv'));
   return {players, coaches};
 }
+
 function loadPools(){
   const arr=loadArr(KEY_POOLS, []);
   return Array.isArray(arr) ? arr : [];
 }
+
 function savePools(pools){
   localStorage.setItem(KEY_POOLS, JSON.stringify(pools||[]));
 }
+
 function currentPoolId(){
   return localStorage.getItem(KEY_CURRENT_POOL) || '';
 }
+
 function setCurrentPoolId(id){
   localStorage.setItem(KEY_CURRENT_POOL, id);
 }
@@ -96,6 +110,7 @@ function getViewEls(){
     viewApp:$('viewApp'),
   };
 }
+
 function hideAll(){
   const v=getViewEls();
   hideEl(v.homeWrap); hideEl(v.truppWrap); hideEl(v.poolWrap);
@@ -103,6 +118,7 @@ function hideAll(){
   if(v.viewRoster) v.viewRoster.style.display='none';
   if(v.viewApp) v.viewApp.style.display='none';
 }
+
 function goHome(){
   hideAll();
   const v=getViewEls();
@@ -111,6 +127,7 @@ function goHome(){
   location.hash='#home';
   renderPoolsList();
 }
+
 function goTrupp(){
   hideAll();
   const v=getViewEls();
@@ -119,6 +136,7 @@ function goTrupp(){
   location.hash='#trupp';
   renderRosterLists();
 }
+
 function goPool(){
   hideAll();
   const v=getViewEls();
@@ -126,6 +144,7 @@ function goPool(){
   if(v.viewApp) v.viewApp.style.display='';
   location.hash='#pool';
 }
+
 function applyRoute(){
   const h=(location.hash||'#home').toLowerCase();
   if(h==='#trupp') return goTrupp();
@@ -133,7 +152,7 @@ function applyRoute(){
   return goHome();
 }
 
-// ---------- Pool list (home) ----------
+// ---------- Pools list (home) ----------
 function renderPoolsList(){
   const wrap=$('poolspelList');
   if(!wrap) return;
@@ -186,6 +205,12 @@ function editPool(id){
   p.updatedAt=Date.now();
   savePools(pools);
   renderPoolsList();
+
+  // update header subtitle if this is current
+  if(currentPoolId() === id){
+    setMatchHeader(__activeTeam, __activeMatch);
+    writePoolHeader(id);
+  }
 }
 
 function deletePool(id){
@@ -200,18 +225,29 @@ function deletePool(id){
 function kvKey(poolId, suffix){
   return `nsk_pool_${poolId}_${suffix}`;
 }
+
 function matchStateKey(poolId, teamNo, matchNo){
   return kvKey(poolId, `state_team_${teamNo}_match_${matchNo}`);
 }
+
 function loadMatchState(poolId, teamNo, matchNo){
   const raw=localStorage.getItem(matchStateKey(poolId, teamNo, matchNo));
   return raw ? safeJSON(raw) || {} : {};
 }
+
 function saveMatchState(poolId, teamNo, matchNo, state){
   localStorage.setItem(matchStateKey(poolId, teamNo, matchNo), JSON.stringify(state||{}));
 }
 
-// ---------- Pool view editor (uses existing controls in index v45) ----------
+// ---------- Pool header label ----------
+function writePoolHeader(poolId){
+  const pools=loadPools();
+  const p=pools.find(x=>x.id===poolId);
+  const label=$('currentPoolspelLabel');
+  if(label) label.textContent = p ? `${p.date||'—'} · ${p.place||'—'}` : 'Poolspel';
+}
+
+// ---------- Static dropdowns + roster dropdowns ----------
 function fillSelectRange(sel, from, to, step=1){
   if(!sel) return;
   sel.innerHTML='';
@@ -280,13 +316,13 @@ function fillRosterDropdowns(){
     goalie.value = cur;
   }
 
-  // coach multi
+  // coach multi (keep selection if possible)
   const coach=$('coach');
   if(coach){
-    const selected=new Set(Array.from(coach.selectedOptions||[]).map(o=>o.value));
+    const selected=new Set(Array.from(coach.selectedOptions||[]).map(o => String(o.value||'').toLowerCase()));
     coach.innerHTML = coaches.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
     for(const opt of coach.options){
-      opt.selected = selected.has(opt.value);
+      opt.selected = selected.has(String(opt.value||'').toLowerCase());
     }
   }
 }
@@ -307,27 +343,86 @@ function renderPlayersContainer(teamSizeVal, selectedPlayers){
     const sel=document.createElement('select');
     sel.className='select';
     sel.setAttribute('data-player-idx', String(i));
-
     sel.innerHTML = '<option value="">Välj…</option>' + players.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
     sel.value = vals[i] || '';
-
     wrap.appendChild(lab);
     wrap.appendChild(sel);
     cont.appendChild(wrap);
   }
 }
 
-// Current editor state pointers
+// ---------- Editor pointers ----------
 let __activeTeam = '1';
 let __activeMatch = '1';
 
-function writePoolHeader(poolId){
-  const pools=loadPools();
-  const p=pools.find(x=>x.id===poolId);
-  const label=$('currentPoolspelLabel');
-  if(label) label.textContent = p ? `${p.date||'—'} · ${p.place||'—'}` : 'Poolspel';
+// ---------- Header (Lag/Match + pool subtitle + opponent/time + prev/next) ----------
+function setMatchHeader(teamNo, matchNo){
+  let h = document.getElementById('matchHeader');
+
+  // pool subtitle (datum · plats)
+  const poolId = currentPoolId();
+  let subtitle = '';
+  try {
+    const pools = JSON.parse(localStorage.getItem(KEY_POOLS) || '[]');
+    const p = pools.find(x => x.id === poolId);
+    if (p){
+      subtitle = `${p.date || '—'} · ${p.place || '—'}`;
+    }
+  } catch {}
+
+  // match meta (motståndare + starttid)
+  const opp = (document.getElementById('opponent')?.value || '').trim();
+  const time = (document.getElementById('matchTime')?.value || '').trim();
+  const meta = `${opp ? opp : 'Motståndare: —'}${time ? ` · Start: ${time}` : ''}`;
+
+  if (!h){
+    const viewApp = document.getElementById('viewApp');
+    if (!viewApp) return;
+
+    h = document.createElement('div');
+    h.id = 'matchHeader';
+    h.style.margin = '10px 0 8px';
+    h.style.padding = '12px 14px';
+    h.style.borderRadius = '14px';
+    h.style.border = '1px solid rgba(15,23,42,.10)';
+    h.style.background = '#fff';
+
+    const toolbar = viewApp.querySelector('.toolbar');
+    if (toolbar && toolbar.parentNode) {
+      toolbar.parentNode.insertBefore(h, toolbar.nextSibling);
+    } else {
+      viewApp.insertBefore(h, viewApp.firstChild);
+    }
+  }
+
+  h.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div>
+        <div style="font-weight:900;font-size:16px;">Lag ${teamNo} – Match ${matchNo}</div>
+        <div style="font-size:13px;color:#475569;margin-top:2px;">${escapeHtml(subtitle)}</div>
+        <div style="font-size:13px;color:#0f172a;margin-top:4px;font-weight:700;">${escapeHtml(meta)}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="prevMatchBtn" type="button"
+          style="border:0;cursor:pointer;border-radius:14px;padding:10px 12px;font-weight:900;background:#e5e7eb;color:#0f172a;">
+          ← Föregående
+        </button>
+        <button id="nextMatchBtn" type="button"
+          style="border:0;cursor:pointer;border-radius:14px;padding:10px 12px;font-weight:900;background:#e5e7eb;color:#0f172a;">
+          Nästa match →
+        </button>
+      </div>
+    </div>
+  `;
+
+  const prev = document.getElementById('prevMatchBtn');
+  if (prev) prev.onclick = () => { goPrevMatch(); };
+
+  const next = document.getElementById('nextMatchBtn');
+  if (next) next.onclick = () => { goNextMatch(); };
 }
 
+// ---------- Form load/save ----------
 function loadStateIntoForm(poolId, teamNo, matchNo){
   const st=loadMatchState(poolId, teamNo, matchNo);
 
@@ -342,10 +437,9 @@ function loadStateIntoForm(poolId, teamNo, matchNo){
   if($('shiftSec')) $('shiftSec').value = st.shiftSec || '90';
   if($('goalie')) $('goalie').value = st.goalie || '';
 
-  // players
   renderPlayersContainer($('teamSize')?.value || '10', st.players || []);
 
-  // coaches selection (optional per match in your older app; we keep it simple: just keep multi selections as-is)
+  setMatchHeader(teamNo, matchNo);
 }
 
 function readFormState(){
@@ -376,6 +470,7 @@ function saveCurrentMatchState(){
   if(!poolId) return;
   const st=readFormState();
   saveMatchState(poolId, __activeTeam, __activeMatch, st);
+
   const pill=$('saveState');
   if(pill){
     pill.textContent='Sparat';
@@ -383,22 +478,63 @@ function saveCurrentMatchState(){
   }
 }
 
+// ---------- Next/Prev match ----------
+function goNextMatch(){
+  const poolId = currentPoolId();
+  if (!poolId) return;
+
+  const matchNoSel = $('matchNo');
+  const matchCountSel = $('matchCount');
+
+  const current = parseInt(matchNoSel?.value || '1', 10) || 1;
+  const max = parseInt(matchCountSel?.value || '4', 10) || 4;
+
+  const next = (current < max) ? (current + 1) : 1;
+
+  try { saveCurrentMatchState(); } catch {}
+
+  if (matchNoSel) matchNoSel.value = String(next);
+  __activeMatch = String(next);
+  loadStateIntoForm(poolId, __activeTeam, __activeMatch);
+  setMatchHeader(__activeTeam, __activeMatch);
+}
+
+function goPrevMatch(){
+  const poolId = currentPoolId();
+  if (!poolId) return;
+
+  const matchNoSel = $('matchNo');
+  const matchCountSel = $('matchCount');
+
+  const current = parseInt(matchNoSel?.value || '1', 10) || 1;
+  const max = parseInt(matchCountSel?.value || '4', 10) || 4;
+
+  const prev = (current > 1) ? (current - 1) : max;
+
+  try { saveCurrentMatchState(); } catch {}
+
+  if (matchNoSel) matchNoSel.value = String(prev);
+  __activeMatch = String(prev);
+  loadStateIntoForm(poolId, __activeTeam, __activeMatch);
+  setMatchHeader(__activeTeam, __activeMatch);
+}
+
+// ---------- Pool selectors (team/match/matchCount) ----------
 function setupPoolSelectors(poolId){
-  // Team selector (teamSelect)
   const teamSel=$('teamSelect');
   if(teamSel){
     teamSel.value = __activeTeam;
     teamSel.onchange = ()=>{
       __activeTeam = teamSel.value || '1';
       loadStateIntoForm(poolId, __activeTeam, __activeMatch);
+      setMatchHeader(__activeTeam, __activeMatch);
     };
   }
 
-  // Match count & matchNo
   const matchCountSel=$('matchCount');
   const matchNoSel=$('matchNo');
 
-  // Ensure options
+  // Ensure matchCount options
   if(matchCountSel && !matchCountSel.options.length){
     for(let i=1;i<=30;i++){
       const o=document.createElement('option');
@@ -411,23 +547,6 @@ function setupPoolSelectors(poolId){
   const p=pools.find(x=>x.id===poolId);
   const count = p && p.matchCount ? p.matchCount : 4;
 
-  if(matchCountSel){
-    matchCountSel.value = String(count);
-    matchCountSel.onchange = ()=>{
-      const pools2=loadPools();
-      const pp=pools2.find(x=>x.id===poolId);
-      if(pp){
-        pp.matchCount = parseInt(matchCountSel.value||'4',10)||4;
-        pp.updatedAt = Date.now();
-        savePools(pools2);
-      }
-      fillMatchNoOptions(parseInt(matchCountSel.value||'4',10)||4);
-      __activeMatch = '1';
-      if(matchNoSel) matchNoSel.value = __activeMatch;
-      loadStateIntoForm(poolId, __activeTeam, __activeMatch);
-    };
-  }
-
   function fillMatchNoOptions(cnt){
     if(!matchNoSel) return;
     matchNoSel.innerHTML='';
@@ -438,50 +557,84 @@ function setupPoolSelectors(poolId){
       matchNoSel.appendChild(o);
     }
   }
+
   fillMatchNoOptions(count);
+
+  if(matchCountSel){
+    matchCountSel.value = String(count);
+    matchCountSel.onchange = ()=>{
+      const pools2=loadPools();
+      const pp=pools2.find(x=>x.id===poolId);
+      const n = parseInt(matchCountSel.value||'4',10)||4;
+      if(pp){
+        pp.matchCount = n;
+        pp.updatedAt = Date.now();
+        savePools(pools2);
+      }
+      fillMatchNoOptions(n);
+      __activeMatch = '1';
+      if(matchNoSel) matchNoSel.value = __activeMatch;
+      loadStateIntoForm(poolId, __activeTeam, __activeMatch);
+      setMatchHeader(__activeTeam, __activeMatch);
+    };
+  }
 
   if(matchNoSel){
     matchNoSel.value = __activeMatch;
     matchNoSel.onchange = ()=>{
       __activeMatch = matchNoSel.value || '1';
       loadStateIntoForm(poolId, __activeTeam, __activeMatch);
+      setMatchHeader(__activeTeam, __activeMatch);
     };
   }
 }
 
+// ---------- Autosave wiring ----------
+let __autosaveWired = false;
+
 function wireMatchAutoSave(){
+  if(__autosaveWired) return;
+  __autosaveWired = true;
+
   const ids=['matchDate','matchTime','opponent','arena','teamSize','onCourt','periodsCount','periodMin','shiftSec','goalie'];
   ids.forEach(id=>{
     const el=$(id);
     if(!el) return;
+
     el.addEventListener('change', ()=>{
       if(id==='teamSize'){
-        // rerender players grid keeping old values
         const old = readFormState().players || [];
         renderPlayersContainer(el.value, old);
       }
       saveCurrentMatchState();
+      setMatchHeader(__activeTeam, __activeMatch);
     });
-    el.addEventListener('input', ()=> saveCurrentMatchState());
+
+    el.addEventListener('input', ()=>{
+      saveCurrentMatchState();
+      setMatchHeader(__activeTeam, __activeMatch);
+    });
   });
 
-  // players selects delegation
   const cont=$('playersContainer');
   if(cont){
     cont.addEventListener('change', (e)=>{
       const t=e.target;
       if(t && t.matches && t.matches('select[data-player-idx]')){
         saveCurrentMatchState();
+        setMatchHeader(__activeTeam, __activeMatch);
       }
     });
   }
 }
 
-// Start pool: goPool + set current + open match 1/lag1
+// ---------- Start pool: open editor at Lag 1 Match 1 ----------
 function startPool(id, isNew=false){
   setCurrentPoolId(id);
+
   __activeTeam='1';
   __activeMatch='1';
+
   goPool();
 
   writePoolHeader(id);
@@ -489,12 +642,13 @@ function startPool(id, isNew=false){
   fillRosterDropdowns();
   setupPoolSelectors(id);
 
-  // Load match 1/lag 1
   loadStateIntoForm(id, __activeTeam, __activeMatch);
   wireMatchAutoSave();
+
+  setMatchHeader(__activeTeam, __activeMatch);
 }
 
-// ---------- Roster ----------
+// ---------- Trupp (list + CRUD) ----------
 function renderRosterLists(){
   const {players, coaches}=getRoster();
   const pl=$('playerList');
@@ -511,6 +665,7 @@ function renderRosterLists(){
       </div>
     `).join('');
   }
+
   if(cl){
     cl.innerHTML = coaches.map((n,i)=>`
       <div class="listRow">
@@ -534,8 +689,14 @@ function addPlayer(){
   saveArr(KEY_PLAYERS, players);
   inp.value='';
   renderRosterLists();
-  fillRosterDropdowns(); // update match dropdowns
+  fillRosterDropdowns();
+  // rerender players container to include new option names
+  if(currentPoolId() && $('playersContainer')) {
+    const st = readFormState();
+    renderPlayersContainer(st.teamSize, st.players);
+  }
 }
+
 function addCoach(){
   const inp=$('newCoach');
   if(!inp) return;
@@ -575,13 +736,50 @@ function doImportFromPaste(){
 
     if(msg) msg.innerHTML='<span class="ok">✔ Import klar</span>';
     ta.value='';
+
     renderPoolsList();
     renderRosterLists();
     fillRosterDropdowns();
 
+    // If there's a pool selected in storage, refresh header
+    const pid=currentPoolId();
+    if(pid) {
+      writePoolHeader(pid);
+      setMatchHeader(__activeTeam, __activeMatch);
+    }
+
   }catch(e){
     if(msg) msg.innerHTML='<span class="error">✖ Import misslyckades</span>';
   }
+}
+
+// ---------- Export (basic) ----------
+function exportJSON(){
+  const payload = {
+    players: getRoster().players,
+    coaches: getRoster().coaches,
+    pools: loadPools(),
+    kv: {}
+  };
+
+  for (let i=0; i<localStorage.length; i++){
+    const k = localStorage.key(i);
+    if (k && k.startsWith('nsk_pool_')){
+      const raw = localStorage.getItem(k);
+      const parsed = safeJSON(raw);
+      payload.kv[k] = (parsed !== null ? parsed : raw);
+    }
+  }
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'nsk-lag-backup.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ---------- Delegation ----------
@@ -615,8 +813,14 @@ function bindDelegation(){
       saveArr(KEY_PLAYERS, players);
       renderRosterLists();
       fillRosterDropdowns();
+      // update selects in editor
+      if(currentPoolId() && $('playersContainer')) {
+        const st = readFormState();
+        renderPlayersContainer(st.teamSize, st.players);
+      }
       return;
     }
+
     if(dp!=null){
       const idx=parseInt(dp,10);
       const {players}=getRoster();
@@ -625,8 +829,13 @@ function bindDelegation(){
       saveArr(KEY_PLAYERS, players);
       renderRosterLists();
       fillRosterDropdowns();
+      if(currentPoolId() && $('playersContainer')) {
+        const st = readFormState();
+        renderPlayersContainer(st.teamSize, st.players);
+      }
       return;
     }
+
     if(ec!=null){
       const idx=parseInt(ec,10);
       const {coaches}=getRoster();
@@ -641,6 +850,7 @@ function bindDelegation(){
       fillRosterDropdowns();
       return;
     }
+
     if(dc!=null){
       const idx=parseInt(dc,10);
       const {coaches}=getRoster();
@@ -656,7 +866,6 @@ function bindDelegation(){
 
 // ---------- Static bindings ----------
 function bindStaticButtons(){
-  // version
   const appVer=$('appVersion');
   if(appVer) appVer.textContent=APP_VERSION;
   const dbg=$('debugVersion');
@@ -672,9 +881,7 @@ function bindStaticButtons(){
   bind('addCoachBtn', addCoach);
 
   bind('importPasteBtn', doImportFromPaste);
-
-  // If user clicks print button in UI, we just print
-  // (your index has inline window.print already)
+  bind('exportJsonBtn', exportJSON);
 }
 
 // ---------- Init ----------
@@ -685,15 +892,13 @@ function init(){
   renderPoolsList();
   applyRoute();
 
-  // If already selected pool in storage, show it
+  // Restore editor if current pool + user is on pool view
   const pid=currentPoolId();
-  if(pid){
-    // do not force navigation if user is on home; but if hash is pool, restore editor
-    if((location.hash||'').toLowerCase()==='#pool'){
-      startPool(pid);
-    }
+  if(pid && (location.hash||'').toLowerCase()==='#pool'){
+    startPool(pid);
   }
 }
+
 window.addEventListener('hashchange', applyRoute);
 window.addEventListener('DOMContentLoaded', init);
 

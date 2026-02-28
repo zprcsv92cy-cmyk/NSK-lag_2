@@ -2,7 +2,7 @@
 'use strict';
 
 // Bump this when you deploy a new version
-const CACHE_VERSION = 'v64';
+const CACHE_VERSION = 'v65';
 const CACHE_NAME = `nsk-cache-${CACHE_VERSION}`;
 
 // Files to cache relative to the Service Worker scope (works for /repo/ and /)

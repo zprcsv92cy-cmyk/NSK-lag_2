@@ -1,13 +1,11 @@
-/* sw.js v57 - GitHub Pages friendly */
-'use strict';
-
-const CACHE = 'nsk-lag-cache-v57';
-const ASSETS = [
+/* sw.js v60 */
+const CACHE_NAME = 'nsk-cache-v60';
+const CORE = [
   './',
   './index.html',
-  './app.css?v=57',
-  './app.js?v=57',
-  './manifest.webmanifest?v=57',
+  './app.js',
+  './app.css',
+  './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png'
 ];
@@ -15,14 +13,14 @@ const ASSETS = [
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS)).catch(()=>{})
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE))
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k !== CACHE) ? caches.delete(k) : Promise.resolve()));
+    await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -31,37 +29,46 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-// Cache-first for same-origin GET, but always try network for HTML to avoid "stuck" old shell.
+// Network-first för HTML (så du alltid får senaste index)
+// Stale-while-revalidate för css/js + ignoreSearch (så app.css?v=57 matchar)
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET') return;
-
   const url = new URL(req.url);
+
+  // bara samma origin
   if (url.origin !== self.location.origin) return;
 
-  const isHTML = req.headers.get('accept') && req.headers.get('accept').includes('text/html');
-
-  if (isHTML) {
-    // network-first
-    event.respondWith(
-      fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
-        return res;
-      }).catch(() => caches.match(req).then(r => r || caches.match('./')))
-    );
+  // HTML navigation
+  if (req.mode === 'navigate' || (req.destination === 'document')) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(req);
+        const cache = await caches.open(CACHE_NAME);
+        cache.put('./index.html', fresh.clone());
+        return fresh;
+      } catch {
+        const cached = await caches.match('./index.html', {ignoreSearch:true});
+        return cached || new Response('Offline', {status: 200});
+      }
+    })());
     return;
   }
 
-  // cache-first for others
-  event.respondWith(
-    caches.match(req).then(cached => {
-      if (cached) return cached;
-      return fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
-        return res;
-      });
-    })
-  );
+  // assets
+  const isAsset = ['script','style','image','manifest'].includes(req.destination);
+  if (isAsset) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+
+      // ignoreSearch gör att "app.css?v=60" matchar "app.css"
+      const cached = await cache.match(req, { ignoreSearch: true });
+      const fetchPromise = fetch(req).then((fresh) => {
+        cache.put(req, fresh.clone());
+        return fresh;
+      }).catch(()=>null);
+
+      return cached || (await fetchPromise) || new Response('', {status: 200});
+    })());
+    return;
+  }
 });

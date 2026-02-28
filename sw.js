@@ -1,4 +1,4 @@
-const CACHE = "nsk-v61";
+const CACHE = "nsk-v62";
 
 self.addEventListener("install", e=>{
   self.skipWaiting();
@@ -6,9 +6,9 @@ self.addEventListener("install", e=>{
     caches.open(CACHE).then(c=>c.addAll([
       "./",
       "./index.html",
-      "./app.js?v=v61",
-      "./app.css?v=v61",
-      "./manifest.webmanifest?v=v61",
+      "./app.js?v=v62",
+      "./app.css?v=v62",
+      "./manifest.webmanifest?v=v62",
       "./icon-192.png",
       "./icon-512.png"
     ]))

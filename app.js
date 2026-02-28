@@ -1,3 +1,5 @@
+const APP_VERSION = 'v38';
+
 // app.js
 const STORAGE_KEY = "nsklag:data:v1";
 
@@ -235,3 +237,41 @@ document.addEventListener("DOMContentLoaded", () => {
 window.addEventListener('load', () => {
   try { applyRoute(); } catch { try { showHome(); } catch {} }
 });
+
+
+/* ----------------------------
+   PWA Auto Update (v38)
+   - Always activate new service worker immediately
+   - Reload automatically when new version takes control
+   ---------------------------- */
+(function setupPwaAutoUpdate(){
+  if (!('serviceWorker' in navigator)) return;
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (window.__reloadingForUpdate) return;
+    window.__reloadingForUpdate = true;
+    window.location.reload();
+  });
+
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js');
+
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+
+      setInterval(() => { try { reg.update(); } catch {} }, 60 * 1000);
+    } catch {}
+  });
+})();

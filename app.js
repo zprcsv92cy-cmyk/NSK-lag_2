@@ -1,12 +1,12 @@
 'use strict';
 
-const APP_VERSION = 'v60';
+const APP_VERSION = 'v61';
 
 // ---- Keys ----
 const LS_PLAYERS = 'nsk_players_v1';
 const LS_COACHES = 'nsk_coaches_v1';
 const LS_POOLS   = 'nsk_pools_v1';
-const LS_KV      = 'nsk_kv_v1'; // valfritt: extra nycklar från din backup
+const LS_KV      = 'nsk_kv_v1';
 
 // ---- Default roster ----
 const DEFAULT_PLAYERS = [
@@ -67,50 +67,97 @@ function saveKV(obj){
 function genId(){
   return Math.random().toString(16).slice(2,10) + Date.now().toString(16);
 }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
 
-// ---- UI: routing ----
+// ---- UI: HARD view control (fixar att flera vyer syns samtidigt) ----
+function hardHideAllViews(){
+  const a = $('view-startsida');
+  const b = $('view-poolspel');
+  if (a) a.classList.add('hidden');
+  if (b) b.classList.add('hidden');
+}
 function setActiveTab(hash){
   document.querySelectorAll('[data-nav]').forEach(a=>{
     a.classList.toggle('active', a.getAttribute('data-nav') === hash);
   });
 }
-function showView(hash){
-  const vStartsida = $('view-startsida');
-  const vPoolspel  = $('view-poolspel');
+function showStartsida(){
+  hardHideAllViews();
+  $('view-startsida')?.classList.remove('hidden');
+  setActiveTab('#startsida');
+}
+function showPoolspel(){
+  hardHideAllViews();
+  $('view-poolspel')?.classList.remove('hidden');
+  setActiveTab('#poolspel');
+}
 
-  if(hash === '#poolspel'){
-    vStartsida.classList.add('hidden');
-    vPoolspel.classList.remove('hidden');
+// ---- Trupp overlay (FORCE overlay även om Safari/CSS strular) ----
+function forceOverlayStyles(on){
+  const ov = $('truppOverlay');
+  if(!ov) return;
+
+  if(on){
+    // tvinga overlay-läge
+    ov.style.position = 'fixed';
+    ov.style.inset = '0';
+    ov.style.left = '0';
+    ov.style.right = '0';
+    ov.style.top = '0';
+    ov.style.bottom = '0';
+    ov.style.background = 'rgba(0,0,0,0.55)';
+    ov.style.display = 'flex';
+    ov.style.alignItems = 'flex-end';
+    ov.style.justifyContent = 'center';
+    ov.style.padding = '18px';
+    ov.style.zIndex = '99999';
+
+    // lås bakgrund-scroll
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
   } else {
-    vPoolspel.classList.add('hidden');
-    vStartsida.classList.remove('hidden');
+    // återställ
+    ov.style.position = '';
+    ov.style.inset = '';
+    ov.style.left = '';
+    ov.style.right = '';
+    ov.style.top = '';
+    ov.style.bottom = '';
+    ov.style.background = '';
+    ov.style.display = '';
+    ov.style.alignItems = '';
+    ov.style.justifyContent = '';
+    ov.style.padding = '';
+    ov.style.zIndex = '';
+
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
   }
-  setActiveTab(hash || '#startsida');
-}
-function applyRoute(){
-  const h = (location.hash || '#startsida').toLowerCase();
-  if(h === '#trupp'){
-    openTrupp();
-    // visa ändå startsidan i bakgrunden
-    showView('#startsida');
-    setActiveTab('#trupp');
-    return;
-  }
-  closeTrupp(true);
-  showView(h === '#poolspel' ? '#poolspel' : '#startsida');
 }
 
-// ---- Trupp overlay ----
 function openTrupp(){
-  $('truppOverlay').classList.remove('hidden');
+  const ov = $('truppOverlay');
+  if(!ov) return;
+  ov.classList.remove('hidden');
+  forceOverlayStyles(true);
   renderTruppLists();
 }
 function closeTrupp(silent=false){
-  $('truppOverlay').classList.add('hidden');
+  const ov = $('truppOverlay');
+  if(!ov) return;
+  ov.classList.add('hidden');
+  forceOverlayStyles(false);
   if(!silent && location.hash.toLowerCase() === '#trupp'){
     location.hash = '#startsida';
   }
 }
+
 function renderTruppLists(){
   const players = loadPlayers();
   const coaches = loadCoaches();
@@ -118,26 +165,25 @@ function renderTruppLists(){
   const pl = $('playerList');
   const cl = $('coachList');
 
-  pl.innerHTML = players.map((name, idx)=>`
-    <div class="item" data-kind="player" data-idx="${idx}">
-      <div class="itemName">${escapeHtml(name)}</div>
-      <button class="btnSecondary smallBtn" data-action="edit-player" data-idx="${idx}">Redigera</button>
-      <button class="btnSecondary smallBtn" data-action="del-player"  data-idx="${idx}">Ta bort</button>
-    </div>
-  `).join('');
+  if(pl){
+    pl.innerHTML = players.map((name, idx)=>`
+      <div class="item" data-kind="player" data-idx="${idx}">
+        <div class="itemName">${escapeHtml(name)}</div>
+        <button class="btnSecondary smallBtn" data-action="edit-player" data-idx="${idx}">Redigera</button>
+        <button class="btnSecondary smallBtn" data-action="del-player"  data-idx="${idx}">Ta bort</button>
+      </div>
+    `).join('');
+  }
 
-  cl.innerHTML = coaches.map((name, idx)=>`
-    <div class="item" data-kind="coach" data-idx="${idx}">
-      <div class="itemName">${escapeHtml(name)}</div>
-      <button class="btnSecondary smallBtn" data-action="edit-coach" data-idx="${idx}">Redigera</button>
-      <button class="btnSecondary smallBtn" data-action="del-coach"  data-idx="${idx}">Ta bort</button>
-    </div>
-  `).join('');
-}
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[m]));
+  if(cl){
+    cl.innerHTML = coaches.map((name, idx)=>`
+      <div class="item" data-kind="coach" data-idx="${idx}">
+        <div class="itemName">${escapeHtml(name)}</div>
+        <button class="btnSecondary smallBtn" data-action="edit-coach" data-idx="${idx}">Redigera</button>
+        <button class="btnSecondary smallBtn" data-action="del-coach"  data-idx="${idx}">Ta bort</button>
+      </div>
+    `).join('');
+  }
 }
 
 // ---- Pools ----
@@ -159,8 +205,9 @@ function renderPools(){
     </div>
   `).join('') : `<div class="muted">Inga sparade poolspel ännu.</div>`;
 
-  $('poolList').innerHTML = html;
-  $('poolList2').innerHTML = html;
+  $('poolList')?.(null);
+  if ($('poolList')) $('poolList').innerHTML = html;
+  if ($('poolList2')) $('poolList2').innerHTML = html;
 }
 
 function newPool(){
@@ -188,7 +235,6 @@ function newPool(){
   renderPools();
   location.hash = '#poolspel';
 }
-
 function editPool(id){
   const pools = loadPools();
   const p = pools.find(x=>x.id===id);
@@ -205,16 +251,14 @@ function editPool(id){
   savePools(pools);
   renderPools();
 }
-
 function deletePool(id){
   if(!confirm('Ta bort detta poolspel?')) return;
   const pools = loadPools().filter(x=>x.id!==id);
   savePools(pools);
   renderPools();
 }
-
 function startPool(id){
-  alert('Matchläge kommer i nästa steg – just nu startar vi själva poolen.\n\n(pool-id: '+id+')');
+  alert('Matchläge kommer i nästa steg.\n\n(pool-id: '+id+')');
   location.hash = '#poolspel';
 }
 
@@ -228,19 +272,20 @@ function exportBackup(){
   };
   const txt = JSON.stringify(payload, null, 2);
   navigator.clipboard?.writeText(txt).catch(()=>{});
-  $('importMsg').className = 'msg ok';
-  $('importMsg').textContent = '✔ Export kopierad till urklipp (om tillåtet). Du kan även markera och kopiera från rutan.';
-  $('importArea').value = txt;
+  const msg = $('importMsg');
+  if(msg){
+    msg.className = 'msg ok';
+    msg.textContent = '✔ Export kopierad (om tillåtet). Innehållet ligger också i rutan.';
+  }
+  if($('importArea')) $('importArea').value = txt;
 }
-
 function importBackup(){
-  const raw = $('importArea').value || '';
+  const raw = $('importArea')?.value || '';
   let data;
-  try{
-    data = JSON.parse(raw);
-  }catch{
-    $('importMsg').className = 'msg err';
-    $('importMsg').textContent = '✖ Ogiltig JSON';
+  try{ data = JSON.parse(raw); }
+  catch{
+    const msg = $('importMsg');
+    if(msg){ msg.className = 'msg err'; msg.textContent = '✖ Ogiltig JSON'; }
     return;
   }
 
@@ -249,29 +294,32 @@ function importBackup(){
   if(Array.isArray(data.pools)) savePools(data.pools);
   if(data.kv && typeof data.kv === 'object') saveKV(data.kv);
 
-  $('importMsg').className = 'msg ok';
-  $('importMsg').textContent = '✔ Import klar';
+  const msg = $('importMsg');
+  if(msg){ msg.className = 'msg ok'; msg.textContent = '✔ Import klar'; }
+
   renderTruppLists();
   renderPools();
 }
 
 // ---- Trupp actions ----
 function addPlayer(){
-  const v = ($('newPlayer').value||'').trim();
+  const inp = $('newPlayer');
+  const v = (inp?.value||'').trim();
   if(!v) return;
   const list = loadPlayers();
   list.push(v);
   savePlayers(list);
-  $('newPlayer').value = '';
+  if(inp) inp.value = '';
   renderTruppLists();
 }
 function addCoach(){
-  const v = ($('newCoach').value||'').trim();
+  const inp = $('newCoach');
+  const v = (inp?.value||'').trim();
   if(!v) return;
   const list = loadCoaches();
   list.push(v);
   saveCoaches(list);
-  $('newCoach').value = '';
+  if(inp) inp.value = '';
   renderTruppLists();
 }
 function editName(kind, idx){
@@ -293,11 +341,32 @@ function deleteName(kind, idx){
   renderTruppLists();
 }
 
+// ---- Routing ----
+function applyRoute(){
+  const h = (location.hash || '#startsida').toLowerCase();
+
+  // stäng overlay om vi inte är på #trupp
+  if(h !== '#trupp') closeTrupp(true);
+
+  if(h === '#trupp'){
+    showStartsida();          // bakgrundsvy
+    setActiveTab('#trupp');   // markera fliken
+    openTrupp();              // öppna overlay
+    return;
+  }
+  if(h === '#poolspel'){
+    showPoolspel();
+    return;
+  }
+  showStartsida();
+}
+
 // ---- Click handling (iOS-safe) ----
 function onAction(action, el){
   switch(action){
     case 'open-trupp': location.hash = '#trupp'; return;
     case 'close-trupp': closeTrupp(); return;
+
     case 'new-pool': newPool(); return;
     case 'stats': alert('Kommer snart: Statistik målvakter.'); return;
 
@@ -317,7 +386,6 @@ function onAction(action, el){
     case 'del-pool': deletePool(el.dataset.id); return;
   }
 }
-
 function wireGlobalActions(){
   const handler = (e)=>{
     const t = e.target.closest('[data-action]');
@@ -325,8 +393,6 @@ function wireGlobalActions(){
     e.preventDefault();
     onAction(t.dataset.action, t);
   };
-
-  // iOS: ibland missas click – vi tar både pointerup och click.
   document.addEventListener('pointerup', handler, {passive:false});
   document.addEventListener('click', handler, {passive:false});
 }
@@ -336,7 +402,7 @@ function setupUpdateBanner(){
   const banner = $('updateBanner');
   const updateBtn = $('updateBtn');
   const dismissBtn = $('dismissBtn');
-  if(!banner) return;
+  if(!banner || !updateBtn || !dismissBtn) return;
 
   const show = ()=>banner.classList.remove('hidden');
   const hide = ()=>banner.classList.add('hidden');
@@ -377,9 +443,8 @@ function setupUpdateBanner(){
 
 // ---- init ----
 function init(){
-  $('versionPill').textContent = APP_VERSION;
+  if($('versionPill')) $('versionPill').textContent = APP_VERSION;
 
-  // register SW
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
@@ -387,11 +452,8 @@ function init(){
   wireGlobalActions();
   renderPools();
   applyRoute();
-
   window.addEventListener('hashchange', applyRoute);
 
-  // update banner
   if('serviceWorker' in navigator) setupUpdateBanner();
 }
-
 window.addEventListener('DOMContentLoaded', init);

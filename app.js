@@ -1,4 +1,4 @@
-const APP_VERSION = 'v40';
+const APP_VERSION = 'v41';
 'use strict';
 
 function escapeHtml(s){
@@ -168,6 +168,15 @@ function addFromInput(kind){
   persist();
 }
 
+/**
+ * Import format we support (your pasted JSON):
+ * {
+ *   players: string[],
+ *   coaches: string[],
+ *   pools: Array<{id,date,place,...}>,
+ *   kv: { [key:string]: any }
+ * }
+ */
 function importFromText(){
   const ta = document.getElementById('importText');
   const msg = document.getElementById('importMsg');
@@ -178,17 +187,48 @@ function importFromText(){
   }
   try{
     const data = JSON.parse(raw);
+
+    // 1) players/coaches -> app roster storage
     const nextPlayers = uniqNames(Array.isArray(data.players) ? data.players : []);
     const nextCoaches = uniqNames(Array.isArray(data.coaches) ? data.coaches : []);
     players = uniqNames(players.concat(nextPlayers));
     coaches = uniqNames(coaches.concat(nextCoaches));
-    persist();
-    if(msg) msg.innerHTML = `<span style="color:#1b5e20">✔ Import klar (${nextPlayers.length} spelare, ${nextCoaches.length} tränare)</span>`;
+    saveArr('players', players);
+    saveArr('coaches', coaches);
+
+    // 2) pools -> keep in localStorage so your poolspel feature can be added back
+    if (Array.isArray(data.pools)) {
+      localStorage.setItem('nsk_pools', JSON.stringify(data.pools));
+    }
+
+    // 3) kv -> restore keys exactly (numbers/strings as string, objects/arrays as JSON)
+    if (data.kv && typeof data.kv === 'object') {
+      for (const k of Object.keys(data.kv)) {
+        const v = data.kv[k];
+        if (v === null || v === undefined) continue;
+        if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+          localStorage.setItem(k, String(v));
+        } else {
+          localStorage.setItem(k, JSON.stringify(v));
+        }
+      }
+    }
+
+    // 4) update UI
+    players = loadArr('players');
+    coaches = loadArr('coaches');
+    editing = {kind:null, idx:-1};
+    renderRoster();
+    renderPoolspelStub();
+
+    if(msg) msg.innerHTML =
+      `<span style="color:#1b5e20">✔ Import klar (${nextPlayers.length} spelare, ${nextCoaches.length} tränare)</span>`;
     if(ta) ta.value='';
-  }catch{
+  }catch(e){
     if(msg) msg.innerHTML = '<span style="color:#b00020">✖ Ogiltig JSON</span>';
   }
 }
+
 function clearImportText(){
   const ta = document.getElementById('importText');
   const msg = document.getElementById('importMsg');
@@ -196,7 +236,29 @@ function clearImportText(){
   if(msg) msg.innerHTML='';
 }
 
-// placeholders (behåll startsidan)
+// Home "saved pools" placeholder (until full feature is reintroduced)
+function renderPoolspelStub(){
+  const el = document.getElementById('poolspelList');
+  if(!el) return;
+  try{
+    const pools = JSON.parse(localStorage.getItem('nsk_pools') || '[]');
+    if(!Array.isArray(pools) || pools.length === 0){
+      el.textContent = 'Inga sparade poolspel ännu.';
+      return;
+    }
+    // Show latest 3
+    const sorted = pools.slice().sort((a,b)=> String(b.updatedAt||b.createdAt||0).localeCompare(String(a.updatedAt||a.createdAt||0)));
+    el.innerHTML = sorted.slice(0,3).map(p => {
+      const date = escapeHtml(p.date || '—');
+      const place = escapeHtml(p.place || '—');
+      return `<div class="small"><b>${date}</b> · ${place}</div>`;
+    }).join('') + (pools.length>3 ? `<div class="small" style="margin-top:6px;">+${pools.length-3} fler…</div>` : '');
+  }catch{
+    el.textContent = 'Inga sparade poolspel ännu.';
+  }
+}
+
+// placeholders
 function createNewPoolspel(){ alert('Kommer snart: Skapa nytt poolspel.'); }
 
 window.addEventListener('load', () => {
@@ -234,11 +296,12 @@ window.addEventListener('load', () => {
   if(clr) clr.addEventListener('click', clearImportText);
 
   renderRoster();
+  renderPoolspelStub();
 });
 
-// SW
+// SW (cache-bust)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=40').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=41').catch(()=>{});
   });
 }

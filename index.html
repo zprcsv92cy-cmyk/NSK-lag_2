@@ -3,177 +3,234 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0f172a" />
-  <title>NSK Lag – Truppen team 18</title>
+  <meta name="theme-color" content="#0b0f14" />
+  <title>NSK Lag</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./icon-192.png" sizes="192x192" />
+  <link rel="icon" href="./icon-192.png" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
 
-  <link rel="stylesheet" href="./app.css?v=48" />
+  <link rel="stylesheet" href="./app.css" />
 </head>
 <body>
 
-  <!-- Topbar -->
-  <header class="topbar">
-    <div class="topbar-left">
-      <div class="brand">NSK Lag</div>
-      <div class="pill">Version <span id="appVersion">—</span></div>
+<header class="topbar">
+  <div class="brand">
+    <img class="brand__logo" src="./icon-192.png" alt="NSK" />
+    <div class="brand__text">
+      <div class="brand__title">NSK Lag</div>
+      <div class="brand__sub">Poolspel • Lag • Byten • PDF</div>
     </div>
-    <div class="topbar-right">
-      <a class="ghostLink" href="#home">Startsida</a>
-      <a class="ghostLink" href="#trupp">Truppen team 18</a>
-      <a class="ghostLink" href="#pool">Poolspel</a>
+  </div>
+  <div class="pill" id="versionPill">v50</div>
+</header>
+
+<nav class="tabs" aria-label="Navigation">
+  <button class="tab" id="navHome" type="button">Startsida</button>
+  <button class="tab" id="navRoster" type="button">Truppen team 18</button>
+  <button class="tab" id="navPool" type="button">Poolspel</button>
+</nav>
+
+<main class="wrap">
+
+  <!-- HOME -->
+  <section id="viewHome" class="view">
+    <div class="card hero">
+      <button class="bigBtn" id="btnGoRoster" type="button">Truppen team 18</button>
+      <button class="bigBtn" id="btnNewPool" type="button">Skapa nytt poolspel</button>
+      <button class="bigBtn bigBtn--ghost" id="btnGoalieStats" type="button">Statistik målvakter</button>
     </div>
-  </header>
 
-  <!-- HOME VIEW -->
-  <main id="homeView">
-    <section class="card">
-      <h1>Startsida</h1>
-      <div class="small">Välj vad du vill göra.</div>
+    <div class="card">
+      <div class="h1">Sparade poolspel</div>
+      <div id="poolListHome" class="stack"></div>
+    </div>
+  </section>
 
-      <div class="homeButtons">
-        <button id="openRosterBtn" class="btn-primary" type="button">Truppen team 18</button>
-        <button id="newPoolspelBtn" class="btn-secondary" type="button">Skapa nytt poolspel</button>
-        <button id="goalieStatsBtn" class="btn-secondary" type="button">Statistik målvakter</button>
+  <!-- ROSTER -->
+  <section id="viewRoster" class="view" style="display:none">
+    <div class="card">
+      <div class="row row--between row--center">
+        <div class="h1">Truppen team 18</div>
+        <button class="chip" id="btnCloseRoster" type="button">Stäng</button>
       </div>
-    </section>
 
-    <section class="card">
-      <h2>Poolspel</h2>
-      <div id="poolspelList"></div>
-    </section>
-  </main>
-
-  <!-- TRUPP VIEW -->
-  <main id="truppView" style="display:none;">
-    <section class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="grid2">
         <div>
-          <h1 style="margin:0;">Truppen team 18</h1>
-          <div class="small">Lägg till, redigera och ta bort spelare/tränare.</div>
-        </div>
-        <button id="backFromRosterBtn" class="btn-secondary" type="button">← Till startsidan</button>
-      </div>
-
-      <div class="grid2" style="margin-top:14px;">
-        <div class="cardInner">
-          <h3>Spelare</h3>
+          <div class="h2">Spelare</div>
           <div class="row">
-            <input id="newPlayer" class="input" placeholder="Ny spelare..." />
-            <button id="addPlayerBtn" class="btn-primary" type="button">Lägg till</button>
+            <input class="input" id="inpNewPlayer" placeholder="Förnamn Efternamn" />
+            <button class="btn btn--primary" id="btnAddPlayer" type="button">Lägg till</button>
           </div>
           <div id="playerList" class="list"></div>
         </div>
 
-        <div class="cardInner">
-          <h3>Tränare</h3>
+        <div>
+          <div class="h2">Tränare</div>
           <div class="row">
-            <input id="newCoach" class="input" placeholder="Ny tränare..." />
-            <button id="addCoachBtn" class="btn-primary" type="button">Lägg till</button>
+            <input class="input" id="inpNewCoach" placeholder="Förnamn Efternamn" />
+            <button class="btn btn--primary" id="btnAddCoach" type="button">Lägg till</button>
           </div>
           <div id="coachList" class="list"></div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section class="card">
-      <h2>Import / Export</h2>
-      <div class="small">Klistra in din backup-JSON nedan och tryck Import.</div>
-      <textarea id="importText" class="textarea" rows="10" placeholder='{"players":[...],"coaches":[...],"pools":[...],"kv":{...}}'></textarea>
-      <div class="row" style="margin-top:10px;">
-        <button id="importPasteBtn" class="btn-primary" type="button">Importera (klistra in)</button>
-        <button id="exportJsonBtn" class="btn-secondary" type="button">Exportera backup-json</button>
-        <div id="importMsg" class="small" style="margin-left:auto;"></div>
+    <div class="card">
+      <div class="h2">Import (backup)</div>
+      <div class="muted">
+        Klistra in din backup-JSON här (t.ex. den du skickade i chatten) och tryck Importera.
       </div>
-    </section>
-  </main>
+      <textarea class="textarea" id="inpImportJson" placeholder='{"players":[...],"coaches":[...],"pools":[...],"kv":{...}}'></textarea>
+      <div class="row">
+        <button class="btn btn--primary" id="btnImport" type="button">Importera</button>
+        <button class="btn" id="btnExport" type="button">Exportera</button>
+        <div id="importMsg" class="muted"></div>
+      </div>
+    </div>
+  </section>
 
-  <!-- POOL VIEW (APP) -->
-  <main id="poolView" style="display:none;">
-    <section class="card">
-      <div class="toolbar">
-        <div class="pill">Aktivt poolspel: <span id="currentPoolspelLabel">—</span></div>
-        <div class="pill" id="saveState">Redo</div>
-        <button id="backHomeBtn" class="btn-secondary" type="button">← Startsida</button>
+  <!-- POOLS (list) -->
+  <section id="viewPools" class="view" style="display:none">
+    <div class="card">
+      <div class="row row--between row--center">
+        <div class="h1">Poolspel</div>
+        <button class="btn btn--primary" id="btnNewPool2" type="button">Skapa nytt</button>
+      </div>
+      <div id="poolList" class="stack"></div>
+    </div>
+  </section>
+
+  <!-- POOL (active) -->
+  <section id="viewPool" class="view" style="display:none">
+    <div class="card">
+      <div class="row row--between row--center">
+        <button class="btn" id="btnBackToPools" type="button">← Tillbaka</button>
+        <div class="pill pill--ghost" id="poolLabel">Poolspel</div>
       </div>
 
-      <div id="msg" style="margin-top:10px;"></div>
+      <div class="divider"></div>
 
-      <div class="selectors">
-        <label class="label">Lag
-          <select id="teamSelect" class="select">
-            <option value="1">Lag 1</option>
-            <option value="2">Lag 2</option>
-            <option value="3">Lag 3</option>
-          </select>
-        </label>
+      <div class="grid2">
+        <div>
+          <div class="h2">Val</div>
 
-        <label class="label">Antal matcher
-          <select id="matchCount" class="select"></select>
-        </label>
+          <div class="grid2 grid2--tight">
+            <div>
+              <label class="label">Lag</label>
+              <select class="select" id="teamSelect">
+                <option value="1">Lag 1</option>
+                <option value="2">Lag 2</option>
+                <option value="3">Lag 3</option>
+              </select>
+            </div>
 
-        <label class="label">Match
-          <select id="matchNo" class="select"></select>
-        </label>
+            <div>
+              <label class="label">Antal matcher</label>
+              <select class="select" id="matchCount"></select>
+            </div>
+
+            <div>
+              <label class="label">Match</label>
+              <select class="select" id="matchNo"></select>
+            </div>
+
+            <div>
+              <label class="label">Plan</label>
+              <select class="select" id="arena">
+                <option value="1">Plan 1</option>
+                <option value="2">Plan 2</option>
+                <option value="3">Plan 3</option>
+                <option value="4">Plan 4</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="label">Datum</label>
+              <input class="input" id="matchDate" type="date" />
+            </div>
+
+            <div>
+              <label class="label">Starttid</label>
+              <input class="input" id="matchTime" type="time" />
+            </div>
+
+            <div class="grid2__span2">
+              <label class="label">Motståndare</label>
+              <input class="input" id="opponent" placeholder="Skriv motståndare" />
+            </div>
+
+            <div>
+              <label class="label">Antal i laget</label>
+              <select class="select" id="teamSize"></select>
+            </div>
+
+            <div>
+              <label class="label">Antal på plan</label>
+              <select class="select" id="onCourt">
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="label">Perioder</label>
+              <select class="select" id="periodsCount">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="label">Periodtid (min)</label>
+              <select class="select" id="periodMin"></select>
+            </div>
+
+            <div class="grid2__span2">
+              <label class="label">Bytestid (sek)</label>
+              <select class="select" id="shiftSec"></select>
+            </div>
+
+            <div>
+              <label class="label">Målvakt</label>
+              <select class="select" id="goalie"></select>
+            </div>
+
+            <div>
+              <label class="label">Tränare (för laget)</label>
+              <select class="select" id="coach" multiple size="4"></select>
+            </div>
+          </div>
+
+          <div class="row row--between row--center" style="margin-top:12px">
+            <div class="muted">Allt sparas automatiskt per lag + match.</div>
+            <div class="pill pill--ghost" id="saveState">Redo</div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <button class="btn btn--primary" id="btnPrint" type="button">PDF / Skriv ut</button>
+            <button class="btn" id="btnClearMatch" type="button">Rensa match</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="h2">Spelare (denna match)</div>
+          <div id="playersContainer" class="gridPlayers"></div>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <section class="card">
-      <h2>Matchinfo</h2>
-      <div class="formGrid">
-        <label class="label">Datum
-          <input id="matchDate" class="input" type="date" />
-        </label>
-        <label class="label">Start
-          <input id="matchTime" class="input" type="time" />
-        </label>
-        <label class="label">Motståndare
-          <input id="opponent" class="input" placeholder="Motståndare" />
-        </label>
-        <label class="label">Plan
-          <select id="arena" class="select"></select>
-        </label>
+    <div class="card">
+      <div class="h2">Bytesschema</div>
+      <div id="msg"></div>
+      <div id="output"></div>
+    </div>
+  </section>
 
-        <label class="label">Antal i laget
-          <select id="teamSize" class="select"></select>
-        </label>
-        <label class="label">Antal på plan
-          <select id="onCourt" class="select"></select>
-        </label>
-        <label class="label">Perioder
-          <select id="periodsCount" class="select"></select>
-        </label>
-        <label class="label">Periodtid (min)
-          <select id="periodMin" class="select"></select>
-        </label>
-        <label class="label">Bytestid (sek)
-          <select id="shiftSec" class="select"></select>
-        </label>
+</main>
 
-        <label class="label">Målvakt
-          <select id="goalie" class="select"></select>
-        </label>
-
-        <label class="label">Tränare (håll inne för flera)
-          <select id="coach" class="select" multiple size="6"></select>
-        </label>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Uttagna spelare (ranking)</h2>
-      <div class="small">Spelare 1 = högst rankad. Målvakt kan inte väljas som utespelare.</div>
-      <div id="playersContainer" class="playersGrid"></div>
-    </section>
-  </main>
-
-  <!-- NOTE: these wrappers exist for backward-compat with older code; v48 uses homeView/truppView/poolView -->
-  <div id="viewHome" style="display:none;"></div>
-  <div id="viewRoster" style="display:none;"></div>
-  <div id="viewApp" style="display:none;"></div>
-
-  <script src="./app.js?v=48"></script>
+<script src="./app.js"></script>
 </body>
 </html>

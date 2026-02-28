@@ -494,15 +494,12 @@ function findNextUndoneIndex(teamNo, matchNo, totalRows, startFromIdx){
 
   const start = Math.min(Math.max(0, startFromIdx|0), totalRows-1);
 
-  // scan forward
   for (let i=start; i<totalRows; i++){
     if (!loadShiftDone(teamNo, matchNo, i)) return i;
   }
-  // wrap around
   for (let i=0; i<start; i++){
     if (!loadShiftDone(teamNo, matchNo, i)) return i;
   }
-  // all done
   return null;
 }
 
@@ -576,10 +573,8 @@ function renderSchedule(){
     </div>
   `;
 
-  // v53: after re-render, auto-scroll to next undone
   if (__lastToggleIndex != null){
     const next = findNextUndoneIndex(teamNo, matchNo, times.length, __lastToggleIndex + 1);
-    // if all done, scroll to last toggled row
     scrollToShiftRow(next != null ? next : __lastToggleIndex);
     __lastToggleIndex = null;
   }
@@ -998,7 +993,6 @@ function wire(){
 
     const act = btn.getAttribute("data-act");
 
-    // Pools list actions
     const id = btn.getAttribute("data-id");
     if (act && id){
       if (act==="startPool") return startPool(id);
@@ -1006,7 +1000,6 @@ function wire(){
       if (act==="delPool") return deletePool(id);
     }
 
-    // Shift “Gjort”
     if (act === "toggleShift"){
       const i = parseInt(btn.getAttribute("data-i")||"0",10);
       const teamNo = getTeamNo();
@@ -1015,8 +1008,8 @@ function wire(){
       const nowDone = loadShiftDone(teamNo, matchNo, i);
       setShiftDone(teamNo, matchNo, i, !nowDone);
 
-      __lastToggleIndex = i;   // v53: remember which was pressed
-      renderSchedule();        // will auto-scroll after render
+      __lastToggleIndex = i;
+      renderSchedule();
       return;
     }
   });

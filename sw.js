@@ -1,39 +1,60 @@
-const CACHE = "nsk-cache-v39";
-
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./app.js?v=39",
-  "./app.css?v=39",
-  "./manifest.webmanifest",
-  "./icon-192.png",
-  "./icon-512.png"
+const CACHE_NAME = 'nsk-cache-v40';
+const URLS = [
+  './',
+  './index.html',
+  './app.js?v=40',
+  './app.css?v=40',
+  './manifest.webmanifest',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
-self.addEventListener("install", e => {
+self.addEventListener('install', (event) => {
   self.skipWaiting();
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(URLS)).catch(()=>{})
   );
 });
 
-self.addEventListener("activate", e => {
-  e.waitUntil((async () => {
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => k !== CACHE && caches.delete(k)));
+    await Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null)));
     await self.clients.claim();
   })());
 });
 
-self.addEventListener("fetch", e => {
-  const req = e.request;
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
 
-  if (req.mode === "navigate") {
-    e.respondWith(fetch(req).catch(() => caches.match("./index.html")));
+  const isHTML = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
+
+  if (isHTML) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(req);
+        const cache = await caches.open(CACHE_NAME);
+        cache.put('./index.html', fresh.clone());
+        return fresh;
+      } catch {
+        return (await caches.match('./index.html')) || Response.error();
+      }
+    })());
     return;
   }
 
-  e.respondWith(
-    caches.match(req).then(r => r || fetch(req))
-  );
+  event.respondWith((async () => {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    const fresh = await fetch(req);
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(req, fresh.clone());
+    return fresh;
+  })());
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });

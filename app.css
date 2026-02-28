@@ -245,7 +245,7 @@ body{
 .chip.on{background: rgba(255,255,255,0.22);border-color: rgba(255,255,255,0.30);}
 
 
-/* v67 tweaks */
+/* v68 tweaks */
 .btn-secondary{background:#e7e8ec; border:1px solid rgba(0,0,0,.10); color:#0b1220; font-weight:700;}
 .statsList{display:flex; flex-direction:column; gap:10px;}
 .statsRow{display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-radius:14px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);} 

@@ -245,7 +245,7 @@ body{
 .chip.on{background: rgba(255,255,255,0.22);border-color: rgba(255,255,255,0.30);}
 
 
-/* v68 tweaks */
+/* v69 tweaks */
 .btn-secondary{background:#e7e8ec; border:1px solid rgba(0,0,0,.10); color:#0b1220; font-weight:700;}
 .statsList{display:flex; flex-direction:column; gap:10px;}
 .statsRow{display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-radius:14px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);} 
@@ -254,3 +254,20 @@ body{
 body.match-locked header.topbar, body.match-locked nav.tabs{display:none !important;}
 body.match-locked{overscroll-behavior:contain;}
 .matchMeta{font-weight:800; opacity:.9; margin:6px 0 10px;}
+
+
+/* v69: bättre synlighet för små åtgärdsknappar */
+.btn-secondary, .btn-danger {
+  font-weight: 700;
+}
+.btn-secondary {
+  background: #e9edf2;
+  border-color: #d4dbe4;
+}
+.btn-danger {
+  background: #f7e3e3;
+  border-color: #e4bcbc;
+}
+.btn-secondary:active, .btn-danger:active {
+  transform: translateY(1px);
+}

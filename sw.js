@@ -1,18 +1,17 @@
-/* sw.js v62 */
+/* sw.js v63 */
 'use strict';
 
-const CACHE_NAME = 'nsk-lag-cache-v62';
+const CACHE_NAME = 'nsk-lag-cache-v63';
 const CORE_ASSETS = [
   './',
   './index.html',
-  './app.css?v=62',
-  './app.js?v=62',
+  './app.css?v=63',
+  './app.js?v=63',
   './icon-192.png',
   './icon-512.png',
   './manifest.webmanifest'
 ];
 
-// Install: cache core
 self.addEventListener('install', (event)=>{
   self.skipWaiting();
   event.waitUntil(
@@ -20,7 +19,6 @@ self.addEventListener('install', (event)=>{
   );
 });
 
-// Activate: cleanup old caches + take control
 self.addEventListener('activate', (event)=>{
   event.waitUntil((async ()=>{
     const keys = await caches.keys();
@@ -29,28 +27,22 @@ self.addEventListener('activate', (event)=>{
   })());
 });
 
-// Messages
 self.addEventListener('message', (event)=>{
   if (event.data && event.data.type === 'SKIP_WAITING'){
     self.skipWaiting();
   }
 });
 
-// Fetch strategy:
-// - HTML: network-first (so new version comes quickly)
-// - Others: cache-first
 self.addEventListener('fetch', (event)=>{
   const req = event.request;
   const url = new URL(req.url);
 
   if (req.method !== 'GET') return;
-
-  // Only same-origin
   if (url.origin !== location.origin) return;
 
   const accept = req.headers.get('accept') || '';
 
-  // HTML -> network first
+  // HTML: network first
   if (accept.includes('text/html') || url.pathname.endsWith('.html') || url.pathname === '/' ){
     event.respondWith((async ()=>{
       try{
@@ -66,7 +58,7 @@ self.addEventListener('fetch', (event)=>{
     return;
   }
 
-  // Other assets -> cache first
+  // assets: cache first
   event.respondWith((async ()=>{
     const cached = await caches.match(req);
     if (cached) return cached;

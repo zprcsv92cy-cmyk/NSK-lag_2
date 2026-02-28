@@ -142,3 +142,11 @@ a{color:inherit}
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   z-index:10000;
 }
+/* v61 overlay hardening (iOS/Safari-safe) */
+#truppOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,0.55);
+}
+#truppOverlay.hidden{ display:none !important; }

@@ -1,54 +1,67 @@
-const CACHE = "nsk-v62";
+/* sw.js v57 - GitHub Pages friendly */
+'use strict';
 
-self.addEventListener("install", e=>{
+const CACHE = 'nsk-lag-cache-v57';
+const ASSETS = [
+  './',
+  './index.html',
+  './app.css?v=57',
+  './app.js?v=57',
+  './manifest.webmanifest?v=57',
+  './icon-192.png',
+  './icon-512.png'
+];
+
+self.addEventListener('install', (event) => {
   self.skipWaiting();
-  e.waitUntil(
-    caches.open(CACHE).then(c=>c.addAll([
-      "./",
-      "./index.html",
-      "./app.js?v=v62",
-      "./app.css?v=v62",
-      "./manifest.webmanifest?v=v62",
-      "./icon-192.png",
-      "./icon-512.png"
-    ]))
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(ASSETS)).catch(()=>{})
   );
 });
 
-self.addEventListener("activate", e=>{
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.map(k => k===CACHE ? null : caches.delete(k))
-    ))
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", e=>{
-  const req=e.request;
-  const isHTML = req.mode==="navigate" || (req.headers.get("accept")||"").includes("text/html");
-
-  e.respondWith((async()=>{
-    if (isHTML){
-      try{
-        const fresh = await fetch(req);
-        const c = await caches.open(CACHE);
-        c.put("./index.html", fresh.clone());
-        return fresh;
-      }catch{
-        const c = await caches.open(CACHE);
-        return (await c.match("./index.html")) || Response.error();
-      }
-    }
-    const c = await caches.open(CACHE);
-    const cached = await c.match(req);
-    if (cached) return cached;
-    try{
-      const fresh = await fetch(req);
-      c.put(req, fresh.clone());
-      return fresh;
-    }catch{
-      return Response.error();
-    }
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => (k !== CACHE) ? caches.delete(k) : Promise.resolve()));
+    await self.clients.claim();
   })());
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// Cache-first for same-origin GET, but always try network for HTML to avoid "stuck" old shell.
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  const isHTML = req.headers.get('accept') && req.headers.get('accept').includes('text/html');
+
+  if (isHTML) {
+    // network-first
+    event.respondWith(
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
+        return res;
+      }).catch(() => caches.match(req).then(r => r || caches.match('./')))
+    );
+    return;
+  }
+
+  // cache-first for others
+  event.respondWith(
+    caches.match(req).then(cached => {
+      if (cached) return cached;
+      return fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
+        return res;
+      });
+    })
+  );
 });

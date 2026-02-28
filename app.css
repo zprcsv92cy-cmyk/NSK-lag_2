@@ -179,3 +179,6 @@ th{background:#f0f2f5}
   body{background:#fff}
   .card{border:0}
 }
+/* v51 stats tables: make scrollable on small screens */
+#viewStats table, #viewPool table { display:block; overflow-x:auto; }
+#viewStats thead, #viewPool thead { position: sticky; top: 0; }

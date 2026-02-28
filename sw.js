@@ -1,46 +1,70 @@
-/* sw.js — v45 */
-const CACHE = 'nsk-v45';
+/* sw.js — v48 */
+'use strict';
+
+const SW_VERSION = 'v48';
+const CACHE_NAME = `nsk-cache-${SW_VERSION}`;
+
+const ASSETS = [
+  './',
+  './index.html',
+  './app.css',
+  './app.js',
+  './manifest.webmanifest',
+  './icon-192.png',
+  './icon-512.png'
+];
 
 self.addEventListener('install', (event) => {
-  // Aktivera direkt (minskar risken att fastna på gammal version)
-  self.skipWaiting();
+  event.waitUntil((async ()=>{
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(ASSETS);
+    self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    // Rensa alla gamla cache-namn (vxx)
+  event.waitUntil((async ()=>{
     const keys = await caches.keys();
-    await Promise.all(keys.map((k) => (k !== CACHE ? caches.delete(k) : null)));
-    // Ta kontroll över alla öppna flikar direkt
+    await Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())));
     await self.clients.claim();
   })());
 });
 
-// Network-first för allt: alltid försök hämta senaste från nätet.
-// Om offline: fall tillbaka till cache (om det finns).
-self.addEventListener('fetch', (event) => {
-  event.respondWith((async () => {
-    try {
-      const res = await fetch(event.request, { cache: 'no-store' });
-
-      // Spara GET-svar i cache (för offline)
-      if (event.request.method === 'GET' && res && res.ok) {
-        const cache = await caches.open(CACHE);
-        cache.put(event.request, res.clone()).catch(() => {});
-      }
-
-      return res;
-    } catch (err) {
-      const cached = await caches.match(event.request);
-      if (cached) return cached;
-      throw err;
-    }
-  })());
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-// Om appen skickar postMessage({type:'SKIP_WAITING'}) -> aktivera direkt
-self.addEventListener('message', (event) => {
-  if (event && event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  event.respondWith((async ()=>{
+    const cache = await caches.open(CACHE_NAME);
+
+    const accept = req.headers.get('accept') || '';
+    const isHTML = accept.includes('text/html') || req.destination === 'document';
+
+    if (isHTML){
+      try{
+        const fresh = await fetch(req);
+        cache.put(req, fresh.clone());
+        return fresh;
+      }catch{
+        const cached = await cache.match(req);
+        if (cached) return cached;
+        return cache.match('./index.html');
+      }
+    }
+
+    const cached = await cache.match(req);
+    if (cached) return cached;
+
+    try{
+      const fresh = await fetch(req);
+      cache.put(req, fresh.clone());
+      return fresh;
+    }catch{
+      return cached || Response.error();
+    }
+  })());
 });

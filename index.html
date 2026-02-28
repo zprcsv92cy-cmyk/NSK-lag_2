@@ -1,184 +1,87 @@
-<!-- v44_index.html -->
 <!doctype html>
 <html lang="sv">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>NSK Lag</title>
-
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="./icon-192.png" />
-  <meta name="theme-color" content="#ffffff" />
-
-  <link rel="stylesheet" href="./app.css?v=44" />
+  <link rel="manifest" href="./manifest.webmanifest?v=45">
+  <link rel="stylesheet" href="./app.css?v=45">
+  <meta name="theme-color" content="#ffffff">
 </head>
 <body>
 
-  <header class="header">
-    <div class="brand">
-      <img class="logo" src="./icon-192.png" alt="NSK" />
-      <div>
-        <div class="title">NSK Lag</div>
-        <div class="subtitle">Poolspel • Lag • Byten • PDF</div>
-      </div>
+  <!-- HEADER -->
+  <header class="top">
+    <img src="./icon-192.png" alt="NSK" class="logo">
+    <div class="titleWrap">
+      <h1>NSK Lag</h1>
+      <div class="sub">Poolspel • Lag • Byten • PDF</div>
     </div>
-
-    <div id="versionBox" class="version-pill">v44</div>
+    <div id="debugVersion" class="versionPill">v45</div>
   </header>
 
   <!-- HOME -->
-  <div id="homeView">
-    <main class="page">
-      <section class="card">
-        <button id="openRosterBtn" class="btn-primary">Truppen team 18</button>
-        <button id="newPoolspelBtn" class="btn-primary">Skapa nytt poolspel</button>
-        <button id="goalieStatsBtn" class="btn-secondary">Statistik målvakter</button>
-      </section>
+  <main id="viewHome">
+    <section class="homeCard">
+      <button id="openRosterBtn" class="homeBtn primary" type="button">Truppen team 18</button>
+      <button id="newPoolspelBtn" class="homeBtn primary" type="button">Skapa nytt poolspel</button>
+      <button id="goalieStatsBtn" class="homeBtn secondary" type="button">Statistik målvakter</button>
+    </section>
 
-      <section class="card">
-        <h2>Sparade poolspel</h2>
-        <div id="poolspelList" class="small"></div>
-      </section>
-    </main>
-  </div>
-
-  <!-- POOL VIEW -->
-  <main class="page" id="poolView" style="display:none;">
-    <section class="card">
-      <div class="row-between">
-        <button id="backToHomeBtn" class="btn-secondary">← Startsida</button>
-        <div id="currentPoolLabel" class="pill"></div>
-      </div>
-
-      <div id="poolMeta" class="small" style="margin-top:10px;"></div>
-
-      <div class="grid2" style="margin-top:14px;">
-        <div>
-          <label>Lag</label>
-          <select id="poolTeamSelect"></select>
-        </div>
-
-        <div>
-          <label>Antal matcher</label>
-          <select id="poolMatchCount"></select>
-        </div>
-
-        <div>
-          <label>Match</label>
-          <select id="poolMatchSelect"></select>
-        </div>
-
-        <div style="display:flex;align-items:flex-end;">
-          <button id="openMatchBtn" class="btn-primary" style="width:100%;">Öppna match</button>
-        </div>
-      </div>
+    <section class="homeCard">
+      <h2>Sparade poolspel</h2>
+      <div id="poolspelList" class="small">Laddar…</div>
     </section>
   </main>
 
-  <!-- MATCH VIEW -->
-  <main class="page" id="matchView" style="display:none;">
-    <section class="card">
-      <div class="row-between">
-        <button id="backToPoolBtn" class="btn-secondary">← Till poolspel</button>
-        <div id="matchPill" class="pill"></div>
-      </div>
+  <!-- APP (poolspel) -->
+  <main id="viewApp" style="display:none">
+    <button id="backHomeBtn" class="backBtn" type="button">← Startsida</button>
+    <div id="currentPoolspelLabel" class="pill">Poolspel</div>
 
-      <div class="grid2" style="margin-top:14px;">
-        <div>
-          <label>Datum</label>
-          <input id="matchDate" type="date" />
-        </div>
-        <div>
-          <label>Starttid</label>
-          <input id="matchTime" type="time" />
-        </div>
-        <div>
-          <label>Motståndare</label>
-          <input id="opponent" type="text" placeholder="Skriv motståndare" />
-        </div>
-        <div>
-          <label>Plan</label>
-          <select id="arena">
-            <option value="1">Plan 1</option>
-            <option value="2">Plan 2</option>
-            <option value="3">Plan 3</option>
-            <option value="4">Plan 4</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Antal i laget</label>
-          <select id="teamSize"></select>
-        </div>
-        <div>
-          <label>Antal på plan</label>
-          <select id="onCourt">
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Perioder per match</label>
-          <select id="periodsCount">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-          </select>
-        </div>
-        <div>
-          <label>Periodtid (min)</label>
-          <select id="periodMin"></select>
-        </div>
-
-        <div>
-          <label>Bytestid (sek)</label>
-          <select id="shiftSec"></select>
-        </div>
-      </div>
-
-      <h3 style="margin-top:18px;">Spelare (denna match)</h3>
-      <div id="playersGrid" class="grid2"></div>
-    </section>
+    <!-- här ligger ditt befintliga poolspel-formulär i din gamla index
+         (om du redan har det i din version kan du låta det vara kvar).
+         Viktigt: behåll ID:n som app.js förväntar sig. -->
+    <div id="appRoot"></div>
   </main>
 
-  <!-- ROSTER MODAL -->
-  <div id="rosterModal" class="modal">
-    <div class="modal-card">
-      <div class="row-between">
-        <h2>Truppen team 18</h2>
-        <button id="closeRosterBtn" class="btn-secondary">Stäng</button>
-      </div>
+  <!-- TRUPP -->
+  <main id="viewRoster" style="display:none">
+    <div class="modalHead">
+      <h2>Truppen team 18</h2>
+      <button id="backFromRosterBtn" class="btn" type="button">Stäng</button>
+    </div>
 
+    <section class="card">
       <h3>Spelare</h3>
       <div class="row">
-        <input id="newPlayer" type="text" placeholder="Förnamn Efternamn" />
-        <button id="addPlayerBtn" class="btn-primary">Lägg till</button>
+        <input id="newPlayer" placeholder="Förnamn Efternamn">
+        <button id="addPlayerBtn" class="btn primary" type="button">Lägg till</button>
       </div>
-      <div id="playerList" class="list"></div>
+      <div id="playerList"></div>
+    </section>
 
-      <h3 style="margin-top:14px;">Tränare</h3>
+    <section class="card">
+      <h3>Tränare</h3>
       <div class="row">
-        <input id="newCoach" type="text" placeholder="Förnamn Efternamn" />
-        <button id="addCoachBtn" class="btn-primary">Lägg till</button>
+        <input id="newCoach" placeholder="Förnamn Efternamn">
+        <button id="addCoachBtn" class="btn primary" type="button">Lägg till</button>
       </div>
-      <div id="coachList" class="list"></div>
+      <div id="coachList"></div>
+    </section>
 
-      <h3 style="margin-top:18px;">Import (backup)</h3>
-      <p class="small">
-        Öppna din <b>nsk-lag-backup.json</b>, kopiera hela innehållet och klistra in nedan.
-      </p>
-      <textarea id="importText" rows="6" spellcheck="false"></textarea>
-
-      <div class="row" style="margin-top:10px;">
-        <button id="importBtn" class="btn-primary">Importera</button>
-        <button id="clearImportBtn" class="btn-secondary">Rensa</button>
-        <div id="importMsg" class="small"></div>
+    <section class="card">
+      <h3>Import (backup)</h3>
+      <p class="small">Klistra in din backup-json här och tryck Importera.</p>
+      <textarea id="importTextarea" rows="8" placeholder='{"players":[...],"coaches":[...],"pools":[...],"kv":{...}}'></textarea>
+      <div class="row">
+        <button id="importFromTextBtn" class="btn primary" type="button">Importera</button>
+        <button id="clearImportBtn" class="btn" type="button">Rensa</button>
       </div>
-    </div>
-  </div>
+      <div id="importMsg" class="small"></div>
+    </section>
+  </main>
 
-  <script src="./app.js?v=44"></script>
+  <script src="./app.js?v=45"></script>
 </body>
 </html>

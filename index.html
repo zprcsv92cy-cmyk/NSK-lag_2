@@ -1,213 +1,184 @@
-<!DOCTYPE html>
+<!-- v44_index.html -->
+<!doctype html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>NSK Lag</title>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
   <meta name="theme-color" content="#ffffff" />
 
-
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="preload" href="./app.css?v=43" as="style">
-<link rel="stylesheet" href="./app.css?v=43">
-
-  <!-- NUCLEAR RESET: https://.../?reset=1 -->
-  <script>
-  (async () => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('reset') !== '1') return;
-
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
-    }
-
-    if (window.caches) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-    }
-
-    const url = new URL(location.href);
-    url.searchParams.delete('reset');
-    location.replace(url.toString());
-  })();
-  </script>
-
-  <script defer src="./app.js?v=43"></script>
-<style>/* fallback */
-body{font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
-#rosterModal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9999;}
-#rosterModal.show{display:flex;}
-#rosterModal .modalCard{background:#fff;border-radius:18px;max-width:720px;width:calc(100% - 24px);max-height:85vh;overflow:auto;}
-</style>
+  <link rel="stylesheet" href="./app.css?v=44" />
 </head>
-
 <body>
+
   <header class="header">
-    <img src="icon-192.png" class="logo" alt="NSK">
-    <div class="headText">
-      <h1>NSK Lag</h1>
-      <div class="subtitle">Poolspel • Lag • Byten • PDF</div>
+    <div class="brand">
+      <img class="logo" src="./icon-192.png" alt="NSK" />
+      <div>
+        <div class="title">NSK Lag</div>
+        <div class="subtitle">Poolspel • Lag • Byten • PDF</div>
+      </div>
     </div>
-    <div id="versionBox" class="versionPill">v43</div>
+
+    <div id="versionBox" class="version-pill">v44</div>
   </header>
 
-  <!-- STARTSIDA -->
-  <main class="page">
-    <section class="homeCard">
-      <button class="homeBtn primary" id="openRosterBtn" type="button">Truppen team 18</button>
-      <button class="homeBtn primary" id="newPoolspelBtn" type="button">Skapa nytt poolspel</button>
-      <button class="homeBtn secondary" id="goalieStatsBtn" type="button">Statistik målvakter</button>
-    </section>
+  <!-- HOME -->
+  <div id="homeView">
+    <main class="page">
+      <section class="card">
+        <button id="openRosterBtn" class="btn-primary">Truppen team 18</button>
+        <button id="newPoolspelBtn" class="btn-primary">Skapa nytt poolspel</button>
+        <button id="goalieStatsBtn" class="btn-secondary">Statistik målvakter</button>
+      </section>
 
-    <section class="savedCard">
-      <h2>Sparade poolspel</h2>
-      <div id="poolspelList" class="small">Inga sparade poolspel ännu.</div>
-    </section>
-  <!-- POOLSPEL VIEW -->
+      <section class="card">
+        <h2>Sparade poolspel</h2>
+        <div id="poolspelList" class="small"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- POOL VIEW -->
   <main class="page" id="poolView" style="display:none;">
-    <section class="navRow">
-      <button class="navBtn" id="backToHomeBtn" type="button">← Startsida</button>
-      <div class="pill" id="currentPoolLabel">Poolspel</div>
-    </section>
+    <section class="card">
+      <div class="row-between">
+        <button id="backToHomeBtn" class="btn-secondary">← Startsida</button>
+        <div id="currentPoolLabel" class="pill"></div>
+      </div>
 
-    <section class="sectionCard">
-      <h2 id="poolTitle">Poolspel</h2>
-      <div class="small" id="poolMeta"></div>
+      <div id="poolMeta" class="small" style="margin-top:10px;"></div>
 
-      <div class="grid2" style="margin-top:12px;">
+      <div class="grid2" style="margin-top:14px;">
         <div>
-          <label class="label">Lag</label>
-          <select id="poolTeamSelect" class="select"></select>
+          <label>Lag</label>
+          <select id="poolTeamSelect"></select>
         </div>
+
         <div>
-          <label class="label">Antal matcher</label>
-          <select id="poolMatchCount" class="select"></select>
+          <label>Antal matcher</label>
+          <select id="poolMatchCount"></select>
         </div>
+
         <div>
-          <label class="label">Match</label>
-          <select id="poolMatchSelect" class="select"></select>
+          <label>Match</label>
+          <select id="poolMatchSelect"></select>
         </div>
-        <div style="display:flex;align-items:flex-end;gap:10px;">
-          <button class="homeBtn primary" id="openMatchBtn" type="button" style="width:100%;">Öppna match</button>
+
+        <div style="display:flex;align-items:flex-end;">
+          <button id="openMatchBtn" class="btn-primary" style="width:100%;">Öppna match</button>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- MATCH EDITOR VIEW -->
+  <!-- MATCH VIEW -->
   <main class="page" id="matchView" style="display:none;">
-    <section class="navRow">
-      <button class="navBtn" id="backToPoolBtn" type="button">← Poolspel</button>
-      <div class="pill" id="matchPill">Lag 1 · Match 1</div>
-    </section>
+    <section class="card">
+      <div class="row-between">
+        <button id="backToPoolBtn" class="btn-secondary">← Till poolspel</button>
+        <div id="matchPill" class="pill"></div>
+      </div>
 
-    <section class="sectionCard">
-      <div class="grid2">
+      <div class="grid2" style="margin-top:14px;">
         <div>
-          <label class="label">Datum</label>
-          <input id="matchDate" class="textInput" placeholder="YYYY-MM-DD" />
+          <label>Datum</label>
+          <input id="matchDate" type="date" />
         </div>
         <div>
-          <label class="label">Starttid</label>
-          <input id="matchTime" class="textInput" placeholder="HH:MM" />
+          <label>Starttid</label>
+          <input id="matchTime" type="time" />
         </div>
         <div>
-          <label class="label">Motståndare</label>
-          <input id="opponent" class="textInput" placeholder="Skriv motståndare" />
+          <label>Motståndare</label>
+          <input id="opponent" type="text" placeholder="Skriv motståndare" />
         </div>
         <div>
-          <label class="label">Plan</label>
-          <select id="arena" class="select"></select>
+          <label>Plan</label>
+          <select id="arena">
+            <option value="1">Plan 1</option>
+            <option value="2">Plan 2</option>
+            <option value="3">Plan 3</option>
+            <option value="4">Plan 4</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Antal i laget</label>
+          <select id="teamSize"></select>
         </div>
         <div>
-          <label class="label">Antal i laget</label>
-          <select id="teamSize" class="select"></select>
+          <label>Antal på plan</label>
+          <select id="onCourt">
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Perioder per match</label>
+          <select id="periodsCount">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
         </div>
         <div>
-          <label class="label">Antal på plan</label>
-          <select id="onCourt" class="select"></select>
+          <label>Periodtid (min)</label>
+          <select id="periodMin"></select>
         </div>
+
         <div>
-          <label class="label">Perioder per match</label>
-          <select id="periodsCount" class="select"></select>
-        </div>
-        <div>
-          <label class="label">Periodtid (min)</label>
-          <select id="periodMin" class="select"></select>
-        </div>
-        <div style="grid-column:1/-1;">
-          <label class="label">Bytestid (sek)</label>
-          <select id="shiftSec" class="select"></select>
+          <label>Bytestid (sek)</label>
+          <select id="shiftSec"></select>
         </div>
       </div>
 
-      <div class="small" style="margin-top:10px;">Allt sparas automatiskt.</div>
-    </section>
-
-    <section class="sectionCard" style="margin-top:14px;">
-      <h2>Spelare (denna match)</h2>
-      <div id="playersGrid" class="playersGrid"></div>
-
-      <div style="margin-top:14px;">
-        <label class="label">Målvakt</label>
-        <select id="goalie" class="select"></select>
-      </div>
-
-      <div style="margin-top:14px;">
-        <label class="label">Tränare (för laget)</label>
-        <select id="coach" class="select" multiple size="6"></select>
-      </div>
+      <h3 style="margin-top:18px;">Spelare (denna match)</h3>
+      <div id="playersGrid" class="grid2"></div>
     </section>
   </main>
 
-  </main>
-
-  <!-- TRUPP MODAL -->
-  <div id="rosterModal" class="modal" aria-hidden="true">
-    <div class="modalSheet" role="dialog" aria-modal="true" aria-labelledby="rosterTitle">
-      <div class="modalHeader">
-        <div id="rosterTitle" class="modalTitle">Truppen team 18</div>
-        <button class="closeBtn" id="closeRosterBtn" type="button">Stäng</button>
+  <!-- ROSTER MODAL -->
+  <div id="rosterModal" class="modal">
+    <div class="modal-card">
+      <div class="row-between">
+        <h2>Truppen team 18</h2>
+        <button id="closeRosterBtn" class="btn-secondary">Stäng</button>
       </div>
 
-      <div class="modalBody">
-        <div class="sectionCard">
-          <h3>Spelare</h3>
-          <div class="stack">
-            <input id="newPlayer" class="textInput" placeholder="Förnamn Efternamn" autocomplete="off" />
-            <button class="homeBtn primary" id="addPlayerBtn" type="button">Lägg till</button>
-          </div>
-          <div id="playerList" class="list"></div>
-        </div>
+      <h3>Spelare</h3>
+      <div class="row">
+        <input id="newPlayer" type="text" placeholder="Förnamn Efternamn" />
+        <button id="addPlayerBtn" class="btn-primary">Lägg till</button>
+      </div>
+      <div id="playerList" class="list"></div>
 
-        <div class="sectionCard" style="margin-top:14px;">
-          <h3>Tränare</h3>
-          <div class="stack">
-            <input id="newCoach" class="textInput" placeholder="Förnamn Efternamn" autocomplete="off" />
-            <button class="homeBtn primary" id="addCoachBtn" type="button">Lägg till</button>
-          </div>
-          <div id="coachList" class="list"></div>
-        </div>
+      <h3 style="margin-top:14px;">Tränare</h3>
+      <div class="row">
+        <input id="newCoach" type="text" placeholder="Förnamn Efternamn" />
+        <button id="addCoachBtn" class="btn-primary">Lägg till</button>
+      </div>
+      <div id="coachList" class="list"></div>
 
-        <div class="sectionCard" style="margin-top:14px;">
-          <h3>Import (backup)</h3>
-          <div class="small">
-            Öppna din <b>nsk-lag-backup.json</b>, kopiera hela innehållet och klistra in nedan.
-          </div>
-          <textarea id="importText" class="textArea" rows="6" placeholder='{"players":[...],"coaches":[...]}'></textarea>
-          <div class="rowBtns">
-            <button class="ghostBtn" id="importBtn" type="button">Importera</button>
-            <button class="ghostBtn" id="clearImportBtn" type="button">Rensa</button>
-          </div>
-          <div id="importMsg" class="small"></div>
-        </div>
+      <h3 style="margin-top:18px;">Import (backup)</h3>
+      <p class="small">
+        Öppna din <b>nsk-lag-backup.json</b>, kopiera hela innehållet och klistra in nedan.
+      </p>
+      <textarea id="importText" rows="6" spellcheck="false"></textarea>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="importBtn" class="btn-primary">Importera</button>
+        <button id="clearImportBtn" class="btn-secondary">Rensa</button>
+        <div id="importMsg" class="small"></div>
       </div>
     </div>
   </div>
 
+  <script src="./app.js?v=44"></script>
 </body>
 </html>

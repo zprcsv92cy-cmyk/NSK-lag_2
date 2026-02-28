@@ -1,4 +1,4 @@
-const APP_VERSION = 'v65';
+const APP_VERSION = 'v66';
 'use strict';
 
 function escapeHtml(s){
@@ -370,26 +370,29 @@ function renderGoalieStats(){
   `;
 }
 
-function showHome(){
-  document.querySelector('main.page')?.style && 0; // no-op
-  document.getElementById('poolView').style.display='none';
-  document.getElementById('matchView').style.display='none';
-  const _home=document.querySelector('main.page'); if(_home) _home.style.display=''; // first main = home
-  location.hash = '#home';
+function showHome() {
+  viewHome.style.display = 'block';
+  viewPool.style.display = 'none';
+  viewMatch.style.display = 'none';
+  viewStats.style.display = 'none';
+  setHash('');
+  renderPools();
 }
-function showPool(){
-  const _home=document.querySelector('main.page'); if(_home) _home.style.display='none';
-  document.getElementById('matchView').style.display='none';
-  document.getElementById('poolView').style.display='';
-  location.hash = '#pool';
-  updatePoolHeader();
-  setupPoolSelectors();
+function showPool() {
+  viewHome.style.display = 'none';
+  viewPool.style.display = 'block';
+  viewMatch.style.display = 'none';
+  viewStats.style.display = 'none';
+  setHash('pool');
+  renderPools();
 }
-function showMatch(){
-  const _home=document.querySelector('main.page'); if(_home) _home.style.display='none';
-  document.getElementById('poolView').style.display='none';
-  document.getElementById('matchView').style.display='';
-  location.hash = '#match';
+function showMatch() {
+  viewHome.style.display = 'none';
+  viewPool.style.display = 'none';
+  viewMatch.style.display = 'block';
+  viewStats.style.display = 'none';
+  setHash('match');
+  renderMatch();
 }
 
 function openPool(id){
@@ -756,7 +759,7 @@ function applyRoute(){
 /* ---------- SW ---------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=42').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
   });
 }
 

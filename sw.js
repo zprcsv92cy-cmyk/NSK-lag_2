@@ -1,9 +1,9 @@
-const CACHE_NAME = 'nsk-cache-v40';
+const CACHE_NAME = 'nsk-cache-v41';
 const URLS = [
   './',
   './index.html',
-  './app.js?v=40',
-  './app.css?v=40',
+  './app.js?v=41',
+  './app.css?v=41',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png'

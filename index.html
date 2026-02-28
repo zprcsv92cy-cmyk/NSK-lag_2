@@ -19,7 +19,7 @@
         <div class="brand__subtitle">Poolspel • Lag • Byten • PDF</div>
       </div>
     </div>
-    <div id="versionBox" class="version-badge">v66</div>
+    <div id="versionBox" class="version-badge">v67</div>
   </header>
 
   <nav class="tabs">
@@ -222,5 +222,22 @@
   </div>
 
   <script src="./app.js" defer></script>
+
+  <!-- Stats modal -->
+  <div class="modal hidden" id="statsModal" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <h2 id="statsTitle">Statistik målvakter</h2>
+        <button class="btn btn-secondary" id="closeStatsBtn">Stäng</button>
+      </div>
+      <div class="muted" id="statsSub">Hur många matcher varje spelare stått i mål (alla poolspel).</div>
+      <div class="divider"></div>
+      <div id="statsBody"></div>
+      <div class="row gap" style="margin-top:14px">
+        <button class="btn btn-secondary" id="refreshStatsBtn">Uppdatera</button>
+        <button class="btn" id="exportStatsBtn">Kopiera</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

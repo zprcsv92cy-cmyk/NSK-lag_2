@@ -1,6 +1,6 @@
-/* v50 — NSK Lag full version (stabil navigation + pool + roster + schema + import) */
+/* v51 — adds #stats (goalie statistics) */
 
-const APP_VERSION = "v50";
+const APP_VERSION = "v51";
 
 /* ---------------------------
    Default Team 18 roster
@@ -45,6 +45,11 @@ function nowId(){
 function setPill(text){
   const el=document.getElementById("saveState"); if(el) el.textContent=text;
 }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
 
 /* ---------------------------
    Roster
@@ -63,7 +68,6 @@ function saveRoster(players, coaches){
 
 function renderRoster(){
   const {players, coaches} = loadRoster();
-
   const pl = document.getElementById("playerList");
   const cl = document.getElementById("coachList");
 
@@ -92,12 +96,6 @@ function renderRoster(){
   }
 }
 
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[m]));
-}
-
 /* ---------------------------
    Pools
 ---------------------------- */
@@ -113,7 +111,6 @@ function getCurrentPoolId(){
 function setCurrentPoolId(id){
   localStorage.setItem(LS.currentPool, id || "");
 }
-
 function formatPoolTitle(p){
   return `${p?.date || "—"} · ${p?.place || "—"}`;
 }
@@ -172,7 +169,7 @@ function deletePool(id){
   pools = pools.filter(x=>x.id!==id);
   savePools(pools);
 
-  // rensa nycklar för poolen
+  // rensa poolens localStorage keys
   for (let i=localStorage.length-1; i>=0; i--){
     const k = localStorage.key(i);
     if (k && k.startsWith(`nsk_pool_${id}_`)) localStorage.removeItem(k);
@@ -282,7 +279,6 @@ function loadState(teamNo, matchNo){
   const st = raw ? safeJsonParse(raw, {}) : {};
   const d = defaultsState();
   const out = Object.assign(d, st || {});
-  // säkerställ players längd = teamSize
   const n = parseInt(out.teamSize||"10",10) || 10;
   out.players = Array.isArray(out.players) ? out.players.slice(0,n) : [];
   while (out.players.length < n) out.players.push("");
@@ -409,7 +405,6 @@ function renderPlayerSelectors(n, values){
     sel.className="select";
     sel.id = `p${i}`;
 
-    // placeholder
     const o0=document.createElement("option");
     o0.value=""; o0.textContent="Välj...";
     sel.appendChild(o0);
@@ -430,9 +425,7 @@ function renderPlayerSelectors(n, values){
 }
 
 /* ---------------------------
-   Simple, stable rotation schedule
-   - Avoids “dubbla byten”: replaces 1 player each shift if possible
-   - Fair over time: cycles bench
+   Rotation schedule
 ---------------------------- */
 function formatMMSS(sec){
   const s = Math.max(0, Math.floor(sec));
@@ -463,7 +456,6 @@ function buildRotation(st, times){
   const k = Math.min(5, Math.max(3, parseInt(st.onCourt,10)||3));
   if (roster.length === 0) return times.map(()=>[]);
 
-  // start lineup
   const lineup = roster.slice(0, Math.min(k, roster.length));
   const bench = roster.slice(lineup.length);
 
@@ -475,7 +467,6 @@ function buildRotation(st, times){
 
     if (bench.length === 0) continue;
 
-    // replace exactly 1 player per shift (avoid double change)
     const outIdx = i % lineup.length;
     const inPlayer = bench[benchIndex % bench.length];
     benchIndex++;
@@ -483,7 +474,6 @@ function buildRotation(st, times){
     const outPlayer = lineup[outIdx];
     lineup[outIdx] = inPlayer;
 
-    // move outPlayer to bench end (keeps cycling)
     const bpos = bench.indexOf(inPlayer);
     if (bpos >= 0) bench.splice(bpos, 1);
     bench.push(outPlayer);
@@ -506,11 +496,9 @@ function renderSchedule(){
 
   const st = getFormState();
   const err = validateState(st);
-  if (err){
-    msg.innerHTML = `<div class="err">✖ ${escapeHtml(err)}</div>`;
-  } else {
-    msg.innerHTML = `<div class="ok">✔ OK</div>`;
-  }
+  msg.innerHTML = err
+    ? `<div class="err">✖ ${escapeHtml(err)}</div>`
+    : `<div class="ok">✔ OK</div>`;
 
   const periods = Math.min(3, Math.max(1, parseInt(st.periodsCount,10)||1));
   const periodMin = parseInt(st.periodMin,10)||15;
@@ -549,10 +537,110 @@ function renderSchedule(){
 }
 
 /* ---------------------------
+   Statistics (Goalies)
+---------------------------- */
+function renderStats(){
+  const out = document.getElementById("statsOut");
+  const meta = document.getElementById("statsMeta");
+  if (!out) return;
+
+  const pools = loadPools();
+  const curId = getCurrentPoolId();
+  const cur = pools.find(p=>p.id===curId);
+
+  // collect goalie selections across pools (or current pool if exists)
+  const poolIds = curId ? [curId] : pools.map(p=>p.id);
+  const counts = new Map();
+  const rows = [];
+
+  for (const pid of poolIds){
+    for (let team=1; team<=3; team++){
+      const prefix = `nsk_pool_${pid}_`;
+      const mcKey = `${prefix}matchCount_team_${team}`;
+      const mc = parseInt(localStorage.getItem(mcKey)||"4",10) || 4;
+
+      for (let m=1; m<=mc; m++){
+        const stKey = `${prefix}state_team_${team}_match_${m}`;
+        const st = safeJsonParse(localStorage.getItem(stKey) || "null", null);
+        if (!st) continue;
+
+        const goalie = String(st.goalie || "").trim();
+        if (!goalie) continue;
+
+        const k = goalie.toLowerCase();
+        counts.set(k, (counts.get(k)||0) + 1);
+
+        rows.push({
+          poolId: pid,
+          team,
+          match: m,
+          date: st.matchDate || "",
+          time: st.matchTime || "",
+          opponent: st.opponent || "",
+          goalie
+        });
+      }
+    }
+  }
+
+  const title = cur ? `Visar statistik för: ${formatPoolTitle(cur)}` : `Visar statistik för: Alla poolspel`;
+  if (meta) meta.textContent = title;
+
+  if (counts.size === 0){
+    out.innerHTML = `<div class="muted">Ingen målvakt är vald ännu i sparade matcher.</div>`;
+    return;
+  }
+
+  const summary = Array.from(counts.entries())
+    .map(([k,v])=>({name: rows.find(r=>r.goalie.toLowerCase()===k)?.goalie || k, count:v}))
+    .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name,"sv"));
+
+  const detail = rows.slice().sort((a,b)=>{
+    if (a.poolId !== b.poolId) return String(a.poolId).localeCompare(String(b.poolId));
+    if (a.team !== b.team) return a.team - b.team;
+    return a.match - b.match;
+  });
+
+  out.innerHTML = `
+    <div class="card" style="margin:0 0 14px 0">
+      <div class="h2" style="margin-top:0">Summering</div>
+      <table>
+        <thead><tr><th>Målvakt</th><th>Antal matcher</th></tr></thead>
+        <tbody>
+          ${summary.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td>${x.count}</td></tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin:0">
+      <div class="h2" style="margin-top:0">Detaljer</div>
+      <table>
+        <thead><tr><th>Lag</th><th>Match</th><th>Datum</th><th>Start</th><th>Motstånd</th><th>Målvakt</th></tr></thead>
+        <tbody>
+          ${detail.map(r=>`
+            <tr>
+              <td>${r.team}</td>
+              <td>${r.match}</td>
+              <td>${escapeHtml(r.date||"—")}</td>
+              <td>${escapeHtml(r.time||"—")}</td>
+              <td>${escapeHtml(r.opponent||"—")}</td>
+              <td>${escapeHtml(r.goalie)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+      <div class="muted" style="margin-top:10px">
+        Tips: För statistik per specifikt poolspel, öppna poolen först och gå sedan till Statistik.
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------------------
    Views + routing
 ---------------------------- */
 function hideAll(){
-  for (const id of ["viewHome","viewRoster","viewPools","viewPool"]){
+  for (const id of ["viewHome","viewRoster","viewPools","viewPool","viewStats"]){
     const el=document.getElementById(id);
     if (el) el.style.display="none";
   }
@@ -583,7 +671,6 @@ function applyRoute(){
   }
 
   if (h === "#pool"){
-    // if no pool -> go pools
     if (!getCurrentPoolId()){
       routeTo("#pools");
       return;
@@ -593,7 +680,12 @@ function applyRoute(){
     return;
   }
 
-  // default
+  if (h === "#stats"){
+    show("viewStats");
+    renderStats();
+    return;
+  }
+
   show("viewHome");
   renderPoolsLists();
 }
@@ -623,7 +715,6 @@ function applyCoachSelections(teamNo){
 }
 
 function fillPoolDropdowns(){
-  // match count 1..30
   const mc = document.getElementById("matchCount");
   mc.innerHTML="";
   for (let i=1;i<=30;i++){
@@ -632,7 +723,6 @@ function fillPoolDropdowns(){
     mc.appendChild(o);
   }
 
-  // team size 1..25
   const ts = document.getElementById("teamSize");
   ts.innerHTML="";
   for (let i=1;i<=25;i++){
@@ -641,7 +731,6 @@ function fillPoolDropdowns(){
     ts.appendChild(o);
   }
 
-  // period min 8..20
   const pm = document.getElementById("periodMin");
   pm.innerHTML="";
   for (let i=8;i<=20;i++){
@@ -650,7 +739,6 @@ function fillPoolDropdowns(){
     pm.appendChild(o);
   }
 
-  // shift 30..180 step 5
   const ss = document.getElementById("shiftSec");
   ss.innerHTML="";
   for (let i=30;i<=180;i+=5){
@@ -659,12 +747,10 @@ function fillPoolDropdowns(){
     ss.appendChild(o);
   }
 
-  // apply saved match count
   const teamNo = getTeamNo();
   const count = loadMatchCount(teamNo);
   mc.value = String(count);
 
-  // match selector 1..count
   const mn = document.getElementById("matchNo");
   const current = parseInt(mn.value||"1",10) || 1;
   mn.innerHTML="";
@@ -679,7 +765,7 @@ function fillPoolDropdowns(){
 }
 
 /* ---------------------------
-   Import / Export (paste JSON)
+   Import / Export
 ---------------------------- */
 function exportBackup(){
   const payload = {
@@ -755,9 +841,7 @@ function setupSW(){
 
   navigator.serviceWorker.register("./sw.js").catch(()=>{});
 
-  // If new SW takes over, just reload once
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    // avoid infinite reload loops
     if (window.__reloadedOnce) return;
     window.__reloadedOnce = true;
     location.reload();
@@ -765,31 +849,30 @@ function setupSW(){
 }
 
 /* ---------------------------
-   Wire events (NO inline onclick — iOS friendly)
+   Wire events (no inline onclick)
 ---------------------------- */
 function wire(){
-  // Version pill
   const v = document.getElementById("versionPill");
   if (v) v.textContent = APP_VERSION;
 
-  // Tabs
   document.getElementById("navHome").addEventListener("click", ()=>routeTo("#home"));
   document.getElementById("navRoster").addEventListener("click", ()=>routeTo("#trupp"));
-  document.getElementById("navPool").addEventListener("click", ()=>{
-    // go pools list
-    routeTo("#pools");
-  });
+  document.getElementById("navPool").addEventListener("click", ()=>routeTo("#pools"));
+  document.getElementById("navStats").addEventListener("click", ()=>routeTo("#stats"));
 
-  // Home buttons
   document.getElementById("btnGoRoster").addEventListener("click", ()=>routeTo("#trupp"));
   document.getElementById("btnNewPool").addEventListener("click", createPool);
   document.getElementById("btnNewPool2").addEventListener("click", createPool);
-  document.getElementById("btnGoalieStats").addEventListener("click", ()=>alert("Kommer snart: Statistik målvakter."));
+  document.getElementById("btnGoalieStats").addEventListener("click", ()=>routeTo("#stats"));
 
-  // Close roster
+  document.getElementById("btnBackFromStats").addEventListener("click", ()=>{
+    // go back to pool if you came from pool, else home
+    if (getCurrentPoolId()) routeTo("#pool");
+    else routeTo("#home");
+  });
+
   document.getElementById("btnCloseRoster").addEventListener("click", ()=>routeTo("#home"));
 
-  // Add player/coach
   document.getElementById("btnAddPlayer").addEventListener("click", ()=>{
     const inp = document.getElementById("inpNewPlayer");
     const name = String(inp.value||"").trim();
@@ -813,7 +896,6 @@ function wire(){
     renderRoster();
   });
 
-  // roster list delegation
   document.getElementById("viewRoster").addEventListener("click", (e)=>{
     const btn = e.target.closest("button");
     if (!btn) return;
@@ -863,11 +945,9 @@ function wire(){
     }
   });
 
-  // import/export
   document.getElementById("btnImport").addEventListener("click", importBackupFromTextarea);
   document.getElementById("btnExport").addEventListener("click", exportBackup);
 
-  // pools list delegation (both views share html)
   document.body.addEventListener("click", (e)=>{
     const btn = e.target.closest("button");
     if (!btn) return;
@@ -880,12 +960,10 @@ function wire(){
     if (act==="delPool") return deletePool(id);
   });
 
-  // pool view buttons
   document.getElementById("btnBackToPools").addEventListener("click", ()=>routeTo("#pools"));
   document.getElementById("btnPrint").addEventListener("click", printPDF);
   document.getElementById("btnClearMatch").addEventListener("click", clearCurrentMatch);
 
-  // pool view changes
   const autos = ["matchDate","matchTime","opponent","arena","onCourt","periodsCount","periodMin","shiftSec","goalie"];
   autos.forEach(id=>{
     const el = document.getElementById(id);
@@ -897,7 +975,6 @@ function wire(){
     const n = parseInt(document.getElementById("teamSize").value||"10",10)||10;
     const st = getFormState();
     st.teamSize = String(n);
-    // adjust players array
     st.players = Array.isArray(st.players) ? st.players.slice(0,n) : [];
     while (st.players.length < n) st.players.push("");
     renderPlayerSelectors(n, st.players);
@@ -906,11 +983,9 @@ function wire(){
   });
 
   document.getElementById("teamSelect").addEventListener("change", ()=>{
-    const teamNo = getTeamNo();
-    // update matchCount/matchNo based on team
     fillPoolDropdowns();
     refreshCoachMulti();
-    applyCoachSelections(teamNo);
+    applyCoachSelections(getTeamNo());
     loadAndRenderPool();
   });
 
@@ -932,12 +1007,11 @@ function wire(){
     renderSchedule();
   });
 
-  // hash routing
   window.addEventListener("hashchange", applyRoute);
 }
 
 /* ---------------------------
-   Render everything (safe)
+   Render everything
 ---------------------------- */
 function renderAll(){
   renderPoolsLists();
@@ -945,14 +1019,16 @@ function renderAll(){
   if (location.hash.toLowerCase()==="#pool"){
     loadAndRenderPool();
   }
+  if (location.hash.toLowerCase()==="#stats"){
+    renderStats();
+  }
 }
 
 /* ---------------------------
    Init
 ---------------------------- */
 window.addEventListener("load", ()=>{
-  // ensure roster defaults exist even on first run
-  loadRoster(); // loads + merges defaults
+  loadRoster();
   if (!localStorage.getItem(LS.players)) localStorage.setItem(LS.players, JSON.stringify(DEFAULT_PLAYERS));
   if (!localStorage.getItem(LS.coaches)) localStorage.setItem(LS.coaches, JSON.stringify(DEFAULT_COACHES));
 

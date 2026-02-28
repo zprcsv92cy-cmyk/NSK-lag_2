@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NSK Lag</title>
+
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#111111">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <link rel="stylesheet" href="./app.css">
+</head>
+
+<body>
+
+  <!-- Debug/version badge -->
+  <div id="debugVersion" aria-label="Version">v?</div>
+
+  <!-- Update banner (shown only when a ny version finns) -->
+  <div id="updateBanner" role="status" aria-live="polite">
+    <div class="updateText">Ny version tillgänglig — uppdatera sidan</div>
+    <div class="updateBtns">
+      <button id="dismissUpdateBtn" class="ghost" type="button">Senare</button>
+      <button id="updateBtn" class="btn" type="button">Uppdatera nu</button>
+    </div>
+  </div>
+
+  <!-- VIEW: STARTSIDA -->
+  <div id="viewHome" class="view">
+    <div class="nsk-top">
+      <img class="nsk-logo" src="./icon-192.png" alt="NSK">
+      <div>
+        <h1>NSK Lag</h1>
+        <div class="small">Poolspel • Lag • Byten • PDF</div>
+        <div style="margin-top:8px;">
+          <button id="installBtn" class="ghost" type="button" style="display:none;">Installera</button>
+          <span id="iosInstallHint" class="small" style="display:none; margin-left:8px;">
+            iPhone: dela → “Lägg till på hemskärmen”
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="home-actions">
+        <button id="openRosterBtn" class="bigbtn primary" type="button">Truppen team 18</button>
+        <button id="newPoolspelBtn" class="bigbtn primary" type="button">Skapa nytt poolspel</button>
+        <button id="goalieStatsBtn" class="bigbtn secondary" type="button">Statistik målvakter</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 14px;">Sparade poolspel</h2>
+      <div id="poolspelList"></div>
+    </div>
+  </div>
+
+  <!-- VIEW: APP (poolspel) -->
+  <div id="viewApp" class="view" style="display:none;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+      <button id="backHomeBtn" class="ghost" type="button">← Startsida</button>
+      <div id="currentPoolspelLabel" class="pill">—</div>
+    </div>
+
+    </div>
+  </div>
+
+  <!-- TOPP: LAG + MATCHINFO -->
+  <div class="card no-print">
+    <div class="row">
+      <div>
+        <label>Lag</label>
+        <select id="teamSelect">
+          <option value="1">Lag 1</option>
+          <option value="2">Lag 2</option>
+          <option value="3">Lag 3</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Antal matcher</label>
+        <select id="matchCount"></select>
+      </div>
+
+      <div>
+        <label>Match</label>
+        <select id="matchNo"></select>
+      </div>
+
+      <div>
+        <label>Datum</label>
+        <input id="matchDate" type="date">
+      </div>
+
+      <div>
+        <label>Starttid</label>
+        <input id="matchTime" type="time">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label>Motståndare</label>
+        <input id="opponent" placeholder="Skriv motståndare">
+      </div>
+      <div>
+        <label>Plan</label>
+        <select id="arena"></select>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label>Antal i laget</label>
+        <select id="teamSize"></select>
+      </div>
+      <div>
+        <label>Antal på plan</label>
+        <select id="onCourt"></select>
+      </div>
+      <div>
+        <label>Perioder per match</label>
+        <select id="periodsCount"></select>
+      </div>
+      <div>
+        <label>Periodtid (min)</label>
+        <select id="periodMin"></select>
+      </div>
+      <div>
+        <label>Bytestid (sek)</label>
+        <select id="shiftSec"></select>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;" class="small">
+      Allt sparas automatiskt per lag + match.
+      <span id="saveState" class="pill" style="margin-left:8px;">Redo</span>
+    </div>
+  </div>
+
+  <!-- LAGUPPSTÄLLNING -->
+  <div class="card no-print">
+    <b>Spelare (denna match)</b>
+    <div id="playersContainer" class="row" style="margin-top:10px;"></div>
+    <div class="hint">Spelare 1 är bäst, spelare 2 näst bäst osv (används i bytestipsen).</div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label>Målvakt</label>
+        <select id="goalie"></select>
+      </div>
+      <div>
+        <label>Tränare (samma för alla matcher i laget)</label>
+        <select id="coach" multiple></select>
+        <div class="hint">Tips: Markera flera genom att trycka flera gånger (mobil) / Ctrl/⌘ (dator).</div>
+      </div>
+    </div>
+
+    <div id="msg" class="small" style="margin-top:10px;"></div>
+
+    <div class="btnrow no-print" style="margin-top:12px;">
+      <button onclick="renderAll()">Skapa matchblad</button>
+      <button class="ghost" onclick="exportPDF()">Dela PDF</button>
+      <button class="ghost" onclick="openRegister()">Register</button>
+      <button class="ghost" onclick="clearTeamMatch()">Rensa (lag+match)</button>
+    </div>
+
+    <div id="exportHelp" class="small no-print" style="margin-top:8px;display:none;"></div>
+  </div>
+
+  <!-- OUTPUT / MATCHBLAD (PRINT-VÄNLIGT) -->
+  <div class="card print-card" id="output">
+    <b>Matchblad</b>
+    <div class="small">Fyll i och tryck “Skapa matchblad”.</div>
+  </div>
+
+  <!-- REGISTER MODAL -->
+  <div id="registerModal" class="no-print">
+    <div class="modalPanel">
+      <div class="modalHeader">
+        <b>Register</b>
+        <button class="ghost" onclick="closeRegister()">Stäng</button>
+      </div>
+
+      <div class="twoCols">
+        <div class="card" style="margin:0;">
+          <b>Spelare</b>
+          <div class="row" style="margin-top:10px;">
+            <input id="newPlayer" placeholder="Förnamn Efternamn">
+            <button onclick="addPlayer()">Lägg till</button>
+          </div>
+          <div id="playerList" style="margin-top:10px;"></div>
+          <div class="small" style="margin-top:8px;">Sorteras A–Ö. Sparas i telefonen.</div>
+        </div>
+
+        <div class="card" style="margin:0;">
+          <b>Tränare</b>
+          <div class="row" style="margin-top:10px;">
+            <input id="newCoach" placeholder="Förnamn Efternamn">
+            <button onclick="addCoach()">Lägg till</button>
+          </div>
+          <div id="coachList" style="margin-top:10px;"></div>
+          <div class="small" style="margin-top:8px;">Sorteras A–Ö. Sparas i telefonen.</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <b>Backup / Flytta till annan telefon</b>
+        <div class="small" style="margin-top:6px;">
+          Export/Import av register + alla lag/matcher.
+        </div>
+        <div class="btnrow" style="margin-top:10px;">
+          <button class="ghost" onclick="exportJSON()">Exportera JSON</button>
+          <label style="margin:0; flex: 1 1 260px;">
+            <span class="small">Importera JSON</span>
+            <input id="importFile" type="file" accept="application/json" />
+          </label>
+        </div>
+        <div id="importMsg" class="small" style="margin-top:8px;"></div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+
+  <!-- VIEW: TRUPP -->
+  <div id="viewRoster" class="view" style="display:none;">
+    <div class="nsk-top">
+      <img class="nsk-logo" src="./icon-192.png" alt="NSK">
+      <div>
+        <h1>Truppen team 18</h1>
+        <div class="small">Spelare + Ledare</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <button id="backFromRosterBtn" class="ghost" type="button">← Startsida</button>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label>Ny spelare</label>
+          <input id="newPlayer" placeholder="Skriv namn">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button id="addPlayerBtn" class="btn" type="button">Lägg till</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>Ny ledare</label>
+          <input id="newCoach" placeholder="Skriv namn">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button id="addCoachBtn" class="btn" type="button">Lägg till</button>
+        </div>
+      </div>
+
+      <div class="btnrow" style="margin-top:12px;">
+        <button id="exportJsonBtn" class="ghost" type="button">Exportera JSON</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 10px;">Spelare</h2>
+      <div id="playerList"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 10px;">Ledare</h2>
+      <div id="coachList"></div>
+    </div>
+  </div>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

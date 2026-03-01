@@ -11,15 +11,57 @@ const DEFAULTS = {
   data: {} // teamId -> matchId -> matchState
 };
 
+function mergeUnique(a, b){
+  const out = [];
+  const seen = new Set();
+  const push = (x)=>{
+    const v = String(x||"").trim();
+    if (!v) return;
+    const k = v.toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push(v);
+  };
+  (a||[]).forEach(push);
+  (b||[]).forEach(push);
+  return out;
+}
+
 function loadAll() {
-  try {
+  // 1) load current app state
+  let state = structuredClone(DEFAULTS);
+  try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(DEFAULTS);
-    const parsed = JSON.parse(raw);
-    return { ...structuredClone(DEFAULTS), ...parsed };
+    if (raw){
+      const parsed = JSON.parse(raw);
+      state = { ...structuredClone(DEFAULTS), ...parsed };
+    }
   } catch {
-    return structuredClone(DEFAULTS);
+    state = structuredClone(DEFAULTS);
   }
+
+  // 2) migrate legacy keys (keep players/coaches)
+  try{
+    const legacyPlayers = JSON.parse(localStorage.getItem("nsk_players") || "[]");
+    if (Array.isArray(legacyPlayers)) state.players = mergeUnique(state.players, legacyPlayers);
+  } catch {}
+  try{
+    const legacyCoaches = JSON.parse(localStorage.getItem("nsk_coaches") || "[]");
+    if (Array.isArray(legacyCoaches)) state.coaches = mergeUnique(state.coaches, legacyCoaches);
+  } catch {}
+  try{
+    const legacyPlayers2 = JSON.parse(localStorage.getItem("players") || "[]");
+    if (Array.isArray(legacyPlayers2)) state.players = mergeUnique(state.players, legacyPlayers2);
+  } catch {}
+  try{
+    const legacyCoaches2 = JSON.parse(localStorage.getItem("coaches") || "[]");
+    if (Array.isArray(legacyCoaches2)) state.coaches = mergeUnique(state.coaches, legacyCoaches2);
+  } catch {}
+
+  // 3) stamp schema + version
+  state.schemaVersion = 1;
+  state.appVersion = "v71";
+  return state;
 }
 
 function saveAll(state) {
@@ -192,7 +234,7 @@ function bindRegisterModal() {
     URL.revokeObjectURL(a.href);
   });
 
-  $("#importJson").addEventListener("change", async (e) => {
+  $("#importFile").addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const txt = await file.text();
@@ -216,8 +258,63 @@ function bindRegisterModal() {
 
 function registerSW() {
   if (!("serviceWorker" in navigator)) return;
-  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+
+  navigator.serviceWorker.register("./sw.js").then((reg) => {
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (window.__reloading) return;
+      window.__reloading = true;
+      window.location.reload();
+    });
+    try { reg.update(); } catch {}
+  }).catch(()=>{});
 }
+
+
+
+/**
+ * Backup/export (stabilitet)
+ * - Exporterar hela appens state (inkl. lag/matcher)
+ * - Inkluderar även legacy roster-keys om de finns
+ */
+function exportJSON(){
+  try{
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      appVersion: "v71",
+      schemaVersion: 1,
+      storageKey: STORAGE_KEY,
+      state: app,
+      legacy: {
+        nsk_players: (()=>{ try{ return JSON.parse(localStorage.getItem("nsk_players")||"[]"); }catch{return null;} })(),
+        nsk_coaches: (()=>{ try{ return JSON.parse(localStorage.getItem("nsk_coaches")||"[]"); }catch{return null;} })()
+      }
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "nsklag-backup-v71.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    const msg = document.getElementById("importMsg");
+    if (msg) msg.innerHTML = "<span class='ok'>✔ Export klar</span>";
+  } catch(e){
+    alert("Export misslyckades");
+  }
+}
+
+/**
+ * Återställ UI (utan att radera data)
+ */
+function resetUI(){
+  try{ sessionStorage.clear(); } catch {}
+  try{ setView("view-matchinfo"); window.scrollTo(0,0); } catch {}
+}
+
+window.exportJSON = exportJSON;
+window.resetUI = resetUI;
 
 document.addEventListener("DOMContentLoaded", () => {
   renderTeamAndMatchSelectors();

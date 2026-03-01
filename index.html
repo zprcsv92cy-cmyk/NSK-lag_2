@@ -177,7 +177,8 @@
     <div class="btnrow no-print" style="margin-top:12px;">
       <button onclick="renderAll()">Skapa matchblad</button>
       <button class="ghost" onclick="exportPDF()">Dela PDF</button>
-      <button class="ghost" onclick="openRegister()">Register</button>
+      <button class="ghost" onclick="openRegister()">Truppen team 18</button>
+      <button class="btn" onclick="openMatchMode()">Matchläge</button>
       <button class="ghost" onclick="clearTeamMatch()">Rensa (lag+match)</button>
     </div>
 
@@ -194,7 +195,7 @@
   <div id="registerModal" class="no-print">
     <div class="modalPanel">
       <div class="modalHeader">
-        <b>Register</b>
+        <b>Truppen team 18</b>
         <button class="ghost" onclick="closeRegister()">Stäng</button>
       </div>
 
@@ -1281,5 +1282,42 @@
   window.addEventListener("load", init);
 </script>
 
+
+<!-- Matchläge (låsning) -->
+<div id="matchModeOverlay" class="mm-overlay" style="display:none;">
+  <div class="mm-card">
+    <div class="mm-top">
+      <div>
+        <div class="mm-title">Matchläge</div>
+        <div id="mmMeta" class="mm-meta">—</div>
+      </div>
+      <button class="ghost mm-close" onclick="closeMatchMode()">Avsluta</button>
+    </div>
+
+    <div class="mm-panels">
+      <div class="mm-panel">
+        <div class="mm-label">Nu på plan</div>
+        <div id="mmNow" class="mm-big">—</div>
+      </div>
+      <div class="mm-panel">
+        <div class="mm-label">Nästa byte</div>
+        <div id="mmNext" class="mm-big">—</div>
+      </div>
+    </div>
+
+    <button id="mmNextBtn" class="mm-next-btn" onclick="markNextShift()">Nästa byte</button>
+
+    <div class="mm-tablewrap">
+      <table class="mm-table">
+        <thead><tr><th>#</th><th>Tid kvar</th><th>På plan</th></tr></thead>
+        <tbody id="mmTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="small" style="margin-top:10px; opacity:.85;">
+      Tips: tryck <b>Nästa byte</b> vid varje byte. Raden markeras som klar.
+    </div>
+  </div>
+</div>
 </body>
 </html>

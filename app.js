@@ -1,116 +1,232 @@
-let players = JSON.parse(localStorage.getItem("players") || "[]");
-let coaches = JSON.parse(localStorage.getItem("coaches") || "[]");
-let pools = JSON.parse(localStorage.getItem("pools") || "[]");
+// app.js
+const STORAGE_KEY = "nsklag:data:v1";
 
-function save() {
-  localStorage.setItem("players", JSON.stringify(players));
-  localStorage.setItem("coaches", JSON.stringify(coaches));
-  localStorage.setItem("pools", JSON.stringify(pools));
+const DEFAULTS = {
+  teams: ["Lag 1", "Lag 2", "Lag 3"],
+  players: [
+    "Agnes Danielsson","Alma Andersson","Ella Berg","Elsa Johansson","Ida Karlsson",
+    "Julia Nilsson","Maja Eriksson","Nora Svensson","Olivia Lind","Sofia Persson"
+  ],
+  coaches: ["Coach 1", "Coach 2"],
+  data: {} // teamId -> matchId -> matchState
+};
+
+function loadAll() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return structuredClone(DEFAULTS);
+    const parsed = JSON.parse(raw);
+    return { ...structuredClone(DEFAULTS), ...parsed };
+  } catch {
+    return structuredClone(DEFAULTS);
+  }
 }
 
-function showTab(id) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+function saveAll(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function addPlayer() {
-  const name = document.getElementById("playerName").value.trim();
-  if (!name) return;
-  players.push(name);
-  document.getElementById("playerName").value = "";
-  save();
-  renderPlayers();
+let app = loadAll();
+
+function $(sel, root=document) { return root.querySelector(sel); }
+function $all(sel, root=document) { return [...root.querySelectorAll(sel)]; }
+
+function getContext() {
+  const team = $("#teamSelect").value;
+  const match = $("#matchSelect").value;
+  return { team, match };
 }
 
-function removePlayer(i) {
-  players.splice(i,1);
-  save();
-  renderPlayers();
+function ensureMatchState(team, match) {
+  app.data[team] ??= {};
+  app.data[team][match] ??= {
+    matchInfo: {
+      date: "", startTime: "", opponent: "", field: "",
+      squadSize: 0, onField: 0, periods: 0, periodMinutes: 0, swapSeconds: 0
+    },
+    selectedPlayers: [],
+    goalie: "",
+    coach: ""
+  };
+  return app.data[team][match];
 }
 
-function renderPlayers() {
-  const list = document.getElementById("playerList");
-  list.innerHTML = "";
+function renderTeamAndMatchSelectors() {
+  const teamSel = $("#teamSelect");
+  teamSel.innerHTML = app.teams.map(t => `<option value="${t}">${t}</option>`).join("");
 
-  players.forEach((p,i)=>{
-    const li = document.createElement("li");
-    li.innerHTML = `
-      ${p}
-      <button onclick="removePlayer(${i})">Ta bort</button>
-    `;
-    list.appendChild(li);
+  const matchSel = $("#matchSelect");
+  // enkelt: 1..10 matcher
+  matchSel.innerHTML = Array.from({length: 10}, (_,i)=>i+1)
+    .map(n => `<option value="Match ${n}">Match ${n}</option>`).join("");
+}
+
+function renderRegisterLists() {
+  const playerList = $("#playersList");
+  playerList.innerHTML = app.players
+    .slice().sort((a,b)=>a.localeCompare(b,"sv"))
+    .map(p => `<option value="${p}"></option>`).join("");
+
+  const coachList = $("#coachesList");
+  coachList.innerHTML = app.coaches
+    .slice().sort((a,b)=>a.localeCompare(b,"sv"))
+    .map(c => `<option value="${c}"></option>`).join("");
+}
+
+function bindViewTabs() {
+  $all("[data-view]").forEach(btn => {
+    btn.addEventListener("click", () => setView(btn.dataset.view));
   });
 }
 
-function addCoach() {
-  const name = document.getElementById("coachName").value.trim();
-  if (!name) return;
-  coaches.push(name);
-  document.getElementById("coachName").value = "";
-  save();
-  renderCoaches();
+function setView(id) {
+  $all(".view").forEach(v => v.classList.toggle("active", v.id === id));
+  $all("[data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === id));
 }
 
-function renderCoaches() {
-  const box = document.getElementById("coachList");
-  box.innerHTML = "";
+function bindContextChange() {
+  $("#teamSelect").addEventListener("change", () => loadContextIntoUI());
+  $("#matchSelect").addEventListener("change", () => loadContextIntoUI());
+}
 
-  coaches.forEach((c,i)=>{
-    const span = document.createElement("span");
-    span.textContent = c + " ✕";
-    span.onclick = () => {
-      coaches.splice(i,1);
-      save();
-      renderCoaches();
-    };
-    box.appendChild(span);
+function loadContextIntoUI() {
+  const { team, match } = getContext();
+  const st = ensureMatchState(team, match);
+
+  // Matchinfo inputs
+  $("#date").value = st.matchInfo.date;
+  $("#startTime").value = st.matchInfo.startTime;
+  $("#opponent").value = st.matchInfo.opponent;
+  $("#field").value = st.matchInfo.field;
+  $("#squadSize").value = st.matchInfo.squadSize || "";
+  $("#onField").value = st.matchInfo.onField || "";
+  $("#periods").value = st.matchInfo.periods || "";
+  $("#periodMinutes").value = st.matchInfo.periodMinutes || "";
+  $("#swapSeconds").value = st.matchInfo.swapSeconds || "";
+
+  // Laguppställning
+  const select = $("#matchPlayers");
+  select.innerHTML = app.players.map(p => `<option value="${p}">${p}</option>`).join("");
+  // markera valda
+  [...select.options].forEach(o => o.selected = st.selectedPlayers.includes(o.value));
+
+  // goalie/coach
+  $("#goalie").innerHTML = `<option value=""></option>` + app.players.map(p => `<option value="${p}">${p}</option>`).join("");
+  $("#goalie").value = st.goalie || "";
+
+  $("#coach").innerHTML = `<option value=""></option>` + app.coaches.map(c => `<option value="${c}">${c}</option>`).join("");
+  $("#coach").value = st.coach || "";
+}
+
+function bindAutoSave() {
+  // Matchinfo autosave
+  const map = [
+    ["#date","date"],["#startTime","startTime"],["#opponent","opponent"],["#field","field"],
+    ["#squadSize","squadSize"],["#onField","onField"],["#periods","periods"],
+    ["#periodMinutes","periodMinutes"],["#swapSeconds","swapSeconds"]
+  ];
+  map.forEach(([sel,key]) => {
+    $(sel).addEventListener("input", () => {
+      const {team,match} = getContext();
+      const st = ensureMatchState(team,match);
+      const val = $(sel).value;
+      st.matchInfo[key] = (["squadSize","onField","periods","periodMinutes","swapSeconds"].includes(key))
+        ? Number(val || 0)
+        : val;
+      saveAll(app);
+    });
+  });
+
+  $("#matchPlayers").addEventListener("change", () => {
+    const {team,match} = getContext();
+    const st = ensureMatchState(team,match);
+    st.selectedPlayers = [...$("#matchPlayers").selectedOptions].map(o=>o.value);
+    saveAll(app);
+  });
+
+  $("#goalie").addEventListener("change", () => {
+    const {team,match} = getContext();
+    const st = ensureMatchState(team,match);
+    st.goalie = $("#goalie").value;
+    saveAll(app);
+  });
+
+  $("#coach").addEventListener("change", () => {
+    const {team,match} = getContext();
+    const st = ensureMatchState(team,match);
+    st.coach = $("#coach").value;
+    saveAll(app);
   });
 }
 
-function createPool() {
-  const date = document.getElementById("poolDate").value;
-  const place = document.getElementById("poolPlace").value;
+function bindRegisterModal() {
+  $("#openRegister").addEventListener("click", () => $("#registerModal").showModal());
+  $("#closeRegister").addEventListener("click", () => $("#registerModal").close());
 
-  if (!date) return;
-
-  pools.push({
-    date,
-    place
+  $("#addPlayer").addEventListener("click", () => {
+    const v = $("#playerInput").value.trim();
+    if (!v) return;
+    if (!app.players.includes(v)) app.players.push(v);
+    $("#playerInput").value = "";
+    saveAll(app);
+    renderRegisterLists();
+    loadContextIntoUI();
   });
 
-  save();
-  renderPools();
-}
+  $("#addCoach").addEventListener("click", () => {
+    const v = $("#coachInput").value.trim();
+    if (!v) return;
+    if (!app.coaches.includes(v)) app.coaches.push(v);
+    $("#coachInput").value = "";
+    saveAll(app);
+    renderRegisterLists();
+    loadContextIntoUI();
+  });
 
-function renderPools() {
-  const list = document.getElementById("poolList");
-  list.innerHTML = "";
+  $("#exportJson").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(app, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "nsk-lag-backup.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
 
-  pools.forEach((p,i)=>{
-    const div = document.createElement("div");
-    div.className = "pool";
-    div.innerHTML = `
-      <strong>${p.date}</strong> • ${p.place || ""}
-      <div>
-        <button onclick="deletePool(${i})">Ta bort</button>
-      </div>
-    `;
-    list.appendChild(div);
+  $("#importJson").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const txt = await file.text();
+    app = JSON.parse(txt);
+    saveAll(app);
+    renderTeamAndMatchSelectors();
+    renderRegisterLists();
+    loadContextIntoUI();
+    e.target.value = "";
+  });
+
+  $("#resetMatch").addEventListener("click", () => {
+    const {team,match} = getContext();
+    if (app.data?.[team]?.[match]) {
+      delete app.data[team][match];
+      saveAll(app);
+      loadContextIntoUI();
+    }
   });
 }
 
-function deletePool(i) {
-  pools.splice(i,1);
-  save();
-  renderPools();
+function registerSW() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("./sw.js").catch(()=>{});
 }
 
-function renderGoalieStats() {
-  const box = document.getElementById("goalieStatsList");
-  box.innerHTML = "Kommer i nästa version";
-}
-
-renderPlayers();
-renderCoaches();
-renderPools();
-renderGoalieStats();
+document.addEventListener("DOMContentLoaded", () => {
+  renderTeamAndMatchSelectors();
+  renderRegisterLists();
+  bindViewTabs();
+  bindContextChange();
+  bindAutoSave();
+  bindRegisterModal();
+  loadContextIntoUI();
+  setView("view-matchinfo");
+  registerSW();
+});

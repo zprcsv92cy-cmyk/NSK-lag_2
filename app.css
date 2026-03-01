@@ -1,112 +1,66 @@
-body {
-  margin: 0;
-  font-family: system-ui;
-  background: #0b1220;
-  color: #111;
+body{
+  font-family:Arial;
+  margin:14px;
 }
 
-.app-bg {
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(circle at center, #18233f, #0b1220);
-  z-index: -1;
+.card{
+  border:1px solid #ddd;
+  padding:12px;
+  margin:10px 0;
+  border-radius:12px;
 }
 
-.top {
-  background: white;
-  padding: 16px;
-  border-bottom: 1px solid #ddd;
+.btnrow{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
-.logo-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+button{
+  padding:12px;
+  font-weight:bold;
+  border-radius:10px;
+  border:0;
+  background:#111;
+  color:white;
 }
 
-.logo-small {
-  width: 60px;
+button.ghost{
+  background:#eee;
+  color:#111;
 }
 
-.sub {
-  color: #666;
-  font-size: 14px;
+.view{display:none;}
+.view.active{display:block;}
+
+.matchBlock{
+  break-inside:avoid;
+  page-break-inside:avoid;
+  border:1px solid #ddd;
+  padding:10px;
+  margin-bottom:10px;
 }
 
-.version {
-  margin-left: auto;
-  background: #2e7d32;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 10px;
-}
 
-.tabs {
-  display: flex;
-  gap: 8px;
-  padding: 10px;
-  background: #eee;
-  overflow-x: auto;
-}
+/* ======================
+PRINT
+====================== */
 
-.tabs button {
-  border: none;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: #ddd;
-}
+@media print{
 
-main {
-  padding: 16px;
-}
+  body{
+    margin:0;
+  }
 
-.tab {
-  display: none;
-}
+  .no-print{
+    display:none!important;
+  }
 
-.tab.active {
-  display: block;
-}
+  .matchBlock{
+    width:48%;
+    float:left;
+    margin:1%;
+    height:auto;
+  }
 
-.add-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-input {
-  padding: 8px;
-  flex: 1;
-}
-
-button {
-  padding: 8px 12px;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  background: white;
-  margin-bottom: 8px;
-  padding: 8px;
-  border-radius: 10px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.chips span {
-  background: #ddd;
-  padding: 6px 10px;
-  border-radius: 12px;
-  margin: 4px;
-  display: inline-block;
-}
-
-.form {
-  display: flex;
-  gap: 8px;
 }

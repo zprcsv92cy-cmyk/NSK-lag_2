@@ -327,3 +327,130 @@ document.addEventListener("DOMContentLoaded", () => {
   setView("view-matchinfo");
   registerSW();
 });
+
+
+// ----------------------------
+// Matchläge (låst matchskärm + superstor "Nästa byte")
+// ----------------------------
+let __mm = { open:false, shiftTimes:[], lineups:[], index:0, key:"" };
+
+function mmProgressKey(){
+  // progress tied to current team+match selection
+  try { return "nsk_mm_progress:" + stateKey(); } catch { return "nsk_mm_progress:fallback"; }
+}
+
+function openMatchMode(){
+  try{
+    // ensure current state saved
+    try { saveState(); } catch {}
+    const teamNo = document.getElementById("teamSelect").value || "1";
+    const matchNo = document.getElementById("matchNo").value || "1";
+    const st = loadStateFor(teamNo, matchNo);
+
+    const periodsCount = Math.min(3, Math.max(1, parseInt(st.periodsCount, 10) || 1));
+    const periodMin = parseInt(st.periodMin, 10) || 15;
+    const shiftSec = parseInt(st.shiftSec, 10) || 90;
+    const totalMinutes = periodMin * periodsCount;
+
+    const shiftTimes = buildShiftTimes(totalMinutes, shiftSec);
+    const globalCounts = {}; // per match
+    const lineups = makeLineupsForMatch(st, globalCounts, shiftTimes);
+
+    __mm.shiftTimes = shiftTimes;
+    __mm.lineups = lineups;
+    __mm.key = mmProgressKey();
+
+    // restore progress
+    const saved = localStorage.getItem(__mm.key);
+    const idx = saved ? parseInt(saved, 10) : 0;
+    __mm.index = (Number.isFinite(idx) && idx >= 0) ? Math.min(idx, shiftTimes.length) : 0;
+
+    const meta = document.getElementById("mmMeta");
+    if (meta){
+      const opp = st.opponent || "—";
+      const date = st.matchDate || "—";
+      const time = st.matchTime || "—";
+      const arena = "Plan " + (st.arena || "—");
+      meta.innerHTML = `Lag ${escapeHtml(teamNo)} • Match ${escapeHtml(matchNo)} • ${escapeHtml(date)} ${escapeHtml(time)} • ${escapeHtml(opp)} • ${escapeHtml(arena)}`;
+    }
+
+    document.getElementById("matchModeOverlay").style.display = "flex";
+    document.body.classList.add("mm-open");
+
+    renderMatchModeTable();
+    updateMatchModeNowNext();
+
+    // wake lock (best effort)
+    requestWakeLock();
+  } catch(e){
+    alert("Matchläge kunde inte starta (fel i data).");
+  }
+}
+
+function closeMatchMode(){
+  document.getElementById("matchModeOverlay").style.display = "none";
+  document.body.classList.remove("mm-open");
+  __mm.open = false;
+  releaseWakeLock();
+}
+
+function renderMatchModeTable(){
+  const tb = document.getElementById("mmTableBody");
+  if (!tb) return;
+  tb.innerHTML = __mm.shiftTimes.map((t,i)=>{
+    const names = lineupToShortText(__mm.lineups[i] || []);
+    const cls = (i < __mm.index) ? "mm-row-done" : (i === __mm.index ? "mm-row-current" : "");
+    return `<tr class="${cls}"><td>${i+1}</td><td class="nowrap">${escapeHtml(t)}</td><td>${escapeHtml(names)}</td></tr>`;
+  }).join("");
+}
+
+function updateMatchModeNowNext(){
+  const nowEl = document.getElementById("mmNow");
+  const nextEl = document.getElementById("mmNext");
+  const i = __mm.index;
+
+  const nowNames = (i < __mm.lineups.length) ? lineupToShortText(__mm.lineups[i] || []) : "—";
+  const nextNames = (i+1 < __mm.lineups.length) ? lineupToShortText(__mm.lineups[i+1] || []) : "—";
+
+  if (nowEl) nowEl.textContent = nowNames || "—";
+  if (nextEl) nextEl.textContent = nextNames || "—";
+
+  const btn = document.getElementById("mmNextBtn");
+  if (btn){
+    if (i >= __mm.shiftTimes.length){
+      btn.textContent = "Klar";
+      btn.disabled = true;
+    } else {
+      btn.textContent = "Nästa byte";
+      btn.disabled = false;
+    }
+  }
+}
+
+function markNextShift(){
+  const max = __mm.shiftTimes.length;
+  __mm.index = Math.min(__mm.index + 1, max);
+  try{ localStorage.setItem(__mm.key, String(__mm.index)); } catch {}
+  renderMatchModeTable();
+  updateMatchModeNowNext();
+}
+
+// Wake Lock (best effort)
+let __wakeLock = null;
+async function requestWakeLock(){
+  try{
+    if ('wakeLock' in navigator && navigator.wakeLock){
+      __wakeLock = await navigator.wakeLock.request('screen');
+      __wakeLock.addEventListener('release', ()=>{});
+    }
+  } catch {}
+}
+async function releaseWakeLock(){
+  try{ if (__wakeLock){ await __wakeLock.release(); } } catch {}
+  __wakeLock = null;
+}
+
+// expose to inline onclick
+window.openMatchMode = openMatchMode;
+window.closeMatchMode = closeMatchMode;
+window.markNextShift = markNextShift;

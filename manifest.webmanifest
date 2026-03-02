@@ -1,11 +1,11 @@
 {
   "name": "NSK Lag",
   "short_name": "NSK Lag",
-  "description": "NSK Lag app för poolspel, trupp, målvaktsstatistik och matchverktyg.",
+  "description": "NSK Lag v78 – poolspel, trupp, matchläge, byten, lag, statistik och backup.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#070b12",
-  "theme_color": "#0b1220",
+  "theme_color": "#070b12",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }

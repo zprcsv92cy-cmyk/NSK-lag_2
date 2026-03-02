@@ -1,23 +1,20 @@
-/* Service Worker - NSK Lag v77 */
-const CACHE_NAME = "nsklag-v77-cache";
+/* NSK Lag v78 Service Worker */
+const CACHE_NAME = "nsklag-v78-cache";
+
 const ASSETS = [
   "./",
   "./index.html",
   "./app.css",
   "./app.js",
   "./manifest.webmanifest",
-  // valfri logga:
-  "./nsk-logo.png",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./nsk-logo.png"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // cache.addAll failar om någon fil saknas, så vi gör "best effort"
     for (const url of ASSETS) {
-      try { await cache.add(url); } catch { /* ignore */ }
+      try { await cache.add(url); } catch {}
     }
     self.skipWaiting();
   })());
@@ -32,20 +29,18 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  const req = event.request;
   event.respondWith((async () => {
-    const cached = await caches.match(req, { ignoreSearch: true });
+    const cached = await caches.match(event.request, { ignoreSearch: true });
     if (cached) return cached;
+
     try {
-      const fresh = await fetch(req);
-      // lägg i cache om GET
-      if (req.method === "GET") {
+      const fresh = await fetch(event.request);
+      if (event.request.method === "GET") {
         const cache = await caches.open(CACHE_NAME);
-        cache.put(req, fresh.clone()).catch(()=>{});
+        cache.put(event.request, fresh.clone()).catch(()=>{});
       }
       return fresh;
     } catch {
-      // fallback to app shell
       const shell = await caches.match("./index.html");
       return shell || new Response("Offline", { status: 503 });
     }

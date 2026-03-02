@@ -460,7 +460,7 @@ window.markNextShift = markNextShift;
 
 
 /* ===========================
-   v74 Stats / Rapporter (B)
+   v75 Stats / Rapporter (B)
    - Målvaktsstatistik: antal matcher som målvakt per spelare
    - Visar totalsumma + per poolspel + per lag
    - Export CSV
@@ -650,7 +650,7 @@ function exportGoalieStatsCSV(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `malvakt-statistik-${scope}-v74.csv`;
+  a.download = `malvakt-statistik-${scope}-v75.csv`;
   document.body.appendChild(a);
   a.click();
   a.remove();

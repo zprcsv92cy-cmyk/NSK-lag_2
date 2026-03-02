@@ -1,3 +1,5 @@
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
+
 // app.js
 const STORAGE_KEY = "nsklag:data:v1";
 
@@ -454,3 +456,208 @@ async function releaseWakeLock(){
 window.openMatchMode = openMatchMode;
 window.closeMatchMode = closeMatchMode;
 window.markNextShift = markNextShift;
+
+
+
+/* ===========================
+   v74 Stats / Rapporter (B)
+   - Målvaktsstatistik: antal matcher som målvakt per spelare
+   - Visar totalsumma + per poolspel + per lag
+   - Export CSV
+   =========================== */
+
+function __safeJson(raw, fallback){
+  try { return JSON.parse(raw); } catch { return fallback; }
+}
+
+function __getCurrentPoolId(){
+  // stöd för både gamla och nya nycklar
+  return localStorage.getItem("nsk_pool:current") ||
+         localStorage.getItem("CURRENT_POOLSPEL_KEY") ||
+         localStorage.getItem("nsk_poolspel:current:v1") ||
+         "";
+}
+
+function __getAllPoolIdsFromStorage(){
+  const ids = new Set();
+  // Nyare struktur i app-state
+  try{
+    if (window.app && Array.isArray(app.pools)){
+      app.pools.forEach(p=> p && p.id && ids.add(String(p.id)));
+    }
+  } catch {}
+
+  // Legacy poolspel list
+  try{
+    const legacy = __safeJson(localStorage.getItem("nsk_poolspel:list:v1") || "[]", []);
+    if (Array.isArray(legacy)){
+      legacy.forEach(p=> p && p.id && ids.add(String(p.id)));
+    }
+  } catch {}
+
+  // Also scan keys
+  for (let i=0; i<localStorage.length; i++){
+    const k = localStorage.key(i);
+    if (!k) continue;
+    const m = k.match(/^nsk_pool_([^_]+)_state_team_/);
+    if (m && m[1]) ids.add(String(m[1]));
+  }
+  return Array.from(ids);
+}
+
+function __iterMatchStates({scope="all"} = {}){
+  const current = __getCurrentPoolId();
+  const poolIds = (scope === "current" && current) ? [current] : __getAllPoolIdsFromStorage();
+
+  const out = [];
+  for (const pid of poolIds){
+    for (let team=1; team<=3; team++){
+      // match count: try app state, else default 4, else scan
+      let matchCount = 4;
+      try{
+        if (window.app && app.poolMatchCount && app.poolMatchCount[pid]){
+          matchCount = parseInt(app.poolMatchCount[pid],10) || 4;
+        }
+      } catch {}
+      for (let match=1; match<=matchCount; match++){
+        const key = `nsk_pool_${pid}_state_team_${team}_match_${match}`;
+        const st = __safeJson(localStorage.getItem(key) || "null", null);
+        if (st) out.push({ pid, team, match, st });
+      }
+    }
+  }
+  return out;
+}
+
+function computeGoalieStats({scope="all"} = {}){
+  const rows = __iterMatchStates({scope});
+  const totals = new Map(); // nameLower -> {name,count, perPool:Map, perTeam:Map}
+
+  const norm = (s)=>String(s||"").trim();
+  const lower = (s)=>norm(s).toLowerCase();
+
+  // try to preserve casing from roster
+  const nameMap = {};
+  try{
+    const roster = __safeJson(localStorage.getItem("nsk_players") || "[]", []);
+    if (Array.isArray(roster)) roster.forEach(n=>{ if(n) nameMap[String(n).toLowerCase()] = n; });
+  } catch {}
+  try{
+    if (window.app && Array.isArray(app.players)){
+      app.players.forEach(n=>{ if(n) nameMap[String(n).toLowerCase()] = n; });
+    }
+  } catch {}
+
+  for (const r of rows){
+    const g = norm(r.st.goalie);
+    if (!g) continue;
+    const k = lower(g);
+    if (!totals.has(k)){
+      totals.set(k, { name: nameMap[k] || g, count: 0, perPool: new Map(), perTeam: new Map() });
+    }
+    const obj = totals.get(k);
+    obj.count += 1;
+    obj.perPool.set(r.pid, (obj.perPool.get(r.pid) || 0) + 1);
+    obj.perTeam.set(String(r.team), (obj.perTeam.get(String(r.team)) || 0) + 1);
+  }
+
+  const list = Array.from(totals.values()).sort((a,b)=> b.count - a.count || a.name.localeCompare(b.name,'sv'));
+  return list;
+}
+
+function renderGoalieStatsV74(){
+  const wrap = document.getElementById("goalieStatsList") || document.getElementById("goalieStatsTable") || document.getElementById("goalieStats");
+  if (!wrap) return;
+
+  // Controls (inject once)
+  if (!document.getElementById("goalieStatsControls")){
+    const controls = document.createElement("div");
+    controls.id = "goalieStatsControls";
+    controls.className = "card";
+    controls.style.marginBottom = "12px";
+    controls.innerHTML = `
+      <div class="row between wrap" style="gap:10px;">
+        <div class="row gap wrap">
+          <label class="field small">
+            <span>Omfattning</span>
+            <select id="goalieScope">
+              <option value="all">Alla poolspel</option>
+              <option value="current">Endast aktuellt poolspel</option>
+            </select>
+          </label>
+        </div>
+        <div class="row gap wrap">
+          <button class="btn ghost" id="goalieStatsRefresh">Uppdatera</button>
+          <button class="btn ghost" id="goalieStatsCsv">Export CSV</button>
+        </div>
+      </div>
+      <div class="small muted">Räknar antal matcher varje spelare har varit målvakt (per lag 1–3 och totalt).</div>
+    `;
+    wrap.parentNode.insertBefore(controls, wrap);
+    document.getElementById("goalieStatsRefresh").addEventListener("click", ()=>renderGoalieStatsV74());
+    document.getElementById("goalieStatsCsv").addEventListener("click", ()=>exportGoalieStatsCSV());
+  }
+
+  const scope = (document.getElementById("goalieScope")?.value) || "all";
+  const data = computeGoalieStats({scope});
+
+  if (!data.length){
+    wrap.innerHTML = `<div class="muted">Ingen målvakt är vald i någon match ännu.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <table class="mmTable">
+      <thead>
+        <tr>
+          <th>Spelare</th>
+          <th class="nowrap">Totalt</th>
+          <th class="nowrap">Lag 1</th>
+          <th class="nowrap">Lag 2</th>
+          <th class="nowrap">Lag 3</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(d=>`
+          <tr>
+            <td>${escapeHtml(d.name)}</td>
+            <td class="nowrap"><b>${d.count}</b></td>
+            <td class="nowrap">${d.perTeam.get("1") || 0}</td>
+            <td class="nowrap">${d.perTeam.get("2") || 0}</td>
+            <td class="nowrap">${d.perTeam.get("3") || 0}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function exportGoalieStatsCSV(){
+  const scope = (document.getElementById("goalieScope")?.value) || "all";
+  const data = computeGoalieStats({scope});
+  const header = ["Spelare","Totalt","Lag 1","Lag 2","Lag 3"];
+  const lines = [header.join(",")];
+  data.forEach(d=>{
+    lines.push([
+      '"' + String(d.name).replace(/"/g,'""') + '"',
+      d.count,
+      d.perTeam.get("1")||0,
+      d.perTeam.get("2")||0,
+      d.perTeam.get("3")||0
+    ].join(","));
+  });
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `malvakt-statistik-${scope}-v74.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Hook: refresh stats when navigating to stats view if possible
+window.addEventListener("hashchange", ()=>{ try{ renderGoalieStatsV74(); }catch{} });
+window.addEventListener("load", ()=>{ try{ renderGoalieStatsV74(); }catch{} });
+

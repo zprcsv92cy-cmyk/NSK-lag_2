@@ -1,22 +1,13 @@
 {
   "name": "NSK Lag",
   "short_name": "NSK Lag",
-  "start_url": "./",
-  "scope": "./",
+  "description": "NSK Lag app för poolspel, trupp, målvaktsstatistik och matchverktyg.",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#111111",
+  "background_color": "#070b12",
+  "theme_color": "#0b1220",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ],
-  "version": "v75"
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
 }

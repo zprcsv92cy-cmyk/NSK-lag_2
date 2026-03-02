@@ -204,3 +204,6 @@ body::after{
 /* Small text */
 .small{ font-size: 13px; color: var(--muted); }
 .muted{ color: var(--muted) !important; }
+
+
+#goalieStatsControls .field{min-width:180px;}

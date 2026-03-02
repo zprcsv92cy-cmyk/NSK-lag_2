@@ -1,215 +1,269 @@
-body{
-  font-family:Arial;
-  margin:14px;
-}
-
-.card{
-  border:1px solid #ddd;
-  padding:12px;
-  margin:10px 0;
-  border-radius:12px;
-}
-
-.btnrow{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-button{
-  padding:12px;
-  font-weight:bold;
-  border-radius:10px;
-  border:0;
-  background:#111;
-  color:white;
-}
-
-button.ghost{
-  background:#eee;
-  color:#111;
-}
-
-.view{display:none;}
-.view.active{display:block;}
-
-.matchBlock{
-  break-inside:avoid;
-  page-break-inside:avoid;
-  border:1px solid #ddd;
-  padding:10px;
-  margin-bottom:10px;
-}
-
-
-/* ======================
-PRINT
-====================== */
-
-@media print{
-
-  body{
-    margin:0;
-  }
-
-  .no-print{
-    display:none!important;
-  }
-
-  .matchBlock{
-    width:48%;
-    float:left;
-    margin:1%;
-    height:auto;
-  }
-
-}
-
-
-/* ===========================
-   v73 Layout polish (C)
-   - Better spacing/typography
-   - Consistent buttons
-   - Clear destructive actions
-   - Subtle background watermark (never blocks taps)
-   =========================== */
-
 :root{
-  --bg:#0b1020;
-  --card:rgba(255,255,255,0.92);
-  --text:#0b1020;
-  --muted:rgba(11,16,32,0.65);
-  --primary:#0b3a7a;
-  --danger:#b00020;
-  --shadow:0 10px 28px rgba(0,0,0,0.18);
-  --radius:18px;
+  --bg:#070b12;
+  --panel:rgba(255,255,255,0.08);
+  --panel2:rgba(255,255,255,0.12);
+  --border:rgba(255,255,255,0.12);
+
+  --text:rgba(255,255,255,0.92);
+  --muted:rgba(255,255,255,0.65);
+
+  --primary:#1e6cff;
+  --green:#22c55e;
+  --danger:#ef4444;
+
+  --shadow: 0 18px 60px rgba(0,0,0,0.35);
+  --r:16px;
 }
 
+*{box-sizing:border-box;}
+html,body{height:100%;}
 body{
-  background: var(--bg);
-  color: var(--text);
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+  background-color:var(--bg);
+  color:var(--text);
 }
 
-/* Background layers (safe for clicks) */
+/* ===== NSK LOGO WALLPAPER ===== */
 body::before{
   content:"";
-  position: fixed;
-  inset: 0;
-  z-index: -2;
+  position:fixed;
+  inset:0;
   pointer-events:none;
-  background:
-    radial-gradient(900px 600px at 25% 5%, rgba(255,255,255,0.10), rgba(0,0,0,0) 60%),
-    linear-gradient(180deg, #0b1020 0%, #070a14 100%);
+  z-index:0;
+  background-image:url("nsk-logo.png");
+  background-repeat:no-repeat;
+  background-size:820px auto;
+  background-position:center 130px;
+  opacity:0.12;
+  filter:saturate(0.9) contrast(0.95);
 }
 body::after{
   content:"";
-  position: fixed;
-  inset:-10%;
-  z-index:-1;
+  position:fixed;
+  inset:0;
   pointer-events:none;
-  background: url("./icon-512.png") no-repeat center;
-  background-size: min(72vmin, 520px) auto;
-  opacity: 0.11;
-  filter: blur(22px);
-  transform: scale(1.15);
-  animation: nskPulse 7s ease-in-out infinite;
+  z-index:0;
+  background: radial-gradient(900px 600px at 50% 25%, rgba(0,0,0,0.10), rgba(0,0,0,0.62));
 }
-@keyframes nskPulse{
-  0%,100%{ opacity: 0.10; }
-  50%{ opacity: 0.14; }
-}
+header,main,footer{position:relative; z-index:1;}
 
-/* Header */
-.topbar, header.top{
-  background: rgba(255,255,255,0.92) !important;
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:5;
   backdrop-filter: blur(10px);
+  background: rgba(0,0,0,0.30);
+  border-bottom:1px solid var(--border);
 }
-.logo, .logo-small{
-  border-radius: 16px;
+.header-inner{
+  max-width:980px;
+  margin:0 auto;
+  padding:14px 16px;
 }
-.version, #versionPill{
-  font-weight: 800;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+.brand{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
 }
-
-/* Cards */
-.card, .print-card, .modalCard, .matchModeCard{
-  background: var(--card) !important;
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: var(--radius) !important;
-  box-shadow: var(--shadow);
+.brand-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
-
-/* Tabs */
-.tabs{
-  background: rgba(255,255,255,0.86) !important;
-  border-bottom: 1px solid rgba(0,0,0,0.08);
-  backdrop-filter: blur(10px);
+.logo{
+  width:38px; height:38px;
+  object-fit:contain;
+  border-radius:10px;
 }
-.tabs .tab, .tabs button{
-  border-radius: 999px !important;
-  padding: 10px 14px !important;
-  font-weight: 800;
+.title{
+  font-size:22px;
+  font-weight:900;
+  line-height:1.1;
 }
-.tabs .tab.active, .tabs button.active{
-  background: rgba(11,16,32,0.92) !important;
-  color: #fff !important;
+.subtitle{
+  margin-top:2px;
+  font-size:13px;
+  color:var(--muted);
+  font-weight:600;
 }
-
-/* Buttons (consistent) */
-.btn, button{
-  border-radius: 14px;
-  font-weight: 800;
-  border: 1px solid rgba(0,0,0,0.10);
-}
-.btn.primary, .btn-primary, .btn.primary.small, button.primary{
-  background: rgba(11,58,122,0.95);
-  color: #fff;
-  border-color: rgba(11,58,122,0.65);
-}
-.btn.ghost, .btn-secondary, .ghost{
-  background: rgba(255,255,255,0.92);
-  color: var(--text);
-}
-.btn.danger, .btn-danger{
-  background: rgba(255,255,255,0.92);
-  color: var(--danger);
-  border-color: rgba(176,0,32,0.25);
+.version{
+  background:#2e7d32;
+  padding:7px 10px;
+  border-radius:12px;
+  font-weight:800;
 }
 
-/* Match mode big button */
-.btn.super, #mmNextBtn{font-size: 24px !important;
-  padding: 18px 18px !important;
-  border-radius: 20px !important;
-  box-shadow: 0 10px 22px rgba(0,0,0,0.18);
-  font-size: 34px;
-padding: 22px 18px;
-border-radius: 22px;
-position: sticky;
-bottom: 12px;
-z-index: 5;
-box-shadow: 0 10px 24px rgba(0,0,0,.25);
+.nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+}
+.chip{
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.06);
+  color:var(--text);
+  padding:8px 10px;
+  border-radius:999px;
+  cursor:pointer;
+}
+.chip:hover{ background:rgba(255,255,255,0.10); }
+
+.container{
+  max-width:980px;
+  margin:18px auto 80px;
+  padding:0 16px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
 }
 
-/* Lists in roster: clearer actions */
-.listItem button,
-#playersList button,
-#coachesList button{
-  min-height: 38px;
+.view{ display:none; }
+.view.active{ display:block; }
+
+.view-head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
 }
-.actionBtn, .listItem .ghost{
-  background: rgba(255,255,255,0.92) !important;
-  border: 1px solid rgba(0,0,0,0.12) !important;
+.view-head h2{ margin:0; }
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:14px;
+  box-shadow:var(--shadow);
 }
-.actionBtn.danger{
-  border-color: rgba(176,0,32,0.25) !important;
+.card.soft{
+  background:rgba(255,255,255,0.06);
+  box-shadow:none;
+}
+.card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.card-head h2, .card-head h3{margin:0;}
+
+.stack{ display:flex; flex-direction:column; gap:12px; }
+
+.row{ display:flex; gap:10px; align-items:center; }
+.row.wrap{ flex-wrap:wrap; }
+
+.btn{
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.08);
+  color:var(--text);
+  padding:12px 14px;
+  border-radius:14px;
+  cursor:pointer;
+  font-weight:800;
+}
+.btn:hover{ background:rgba(255,255,255,0.12); }
+.btn-primary{ background:rgba(30,108,255,0.85); border-color:rgba(30,108,255,0.55); }
+.btn-green{ background:rgba(34,197,94,0.75); border-color:rgba(34,197,94,0.55); }
+.btn-danger{ background:rgba(239,68,68,0.75); border-color:rgba(239,68,68,0.55); }
+.btn-ghost{ background:transparent; }
+
+.small{ font-size:12px; }
+.muted{ color:var(--muted); }
+
+.pill{
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.06);
+  padding:8px 10px;
+  border-radius:999px;
 }
 
-/* Small text */
-.small{ font-size: 13px; color: var(--muted); }
-.muted{ color: var(--muted) !important; }
+.field{ display:flex; flex-direction:column; gap:6px; }
+.field span{ color:var(--muted); font-size:12px; font-weight:700; }
+.field input, textarea{
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.06);
+  color:var(--text);
+  border-radius:14px;
+  padding:12px;
+  font-size:15px;
+  outline:none;
+}
+textarea{ width:100%; resize:vertical; }
 
+.grid2{ display:grid; grid-template-columns:1fr; gap:12px; }
+.grid3{ display:grid; grid-template-columns:1fr; gap:12px; }
+@media (min-width:900px){
+  .grid2{ grid-template-columns:1fr 1fr; }
+  .grid3{ grid-template-columns:1fr 1fr 1fr; }
+}
 
-#goalieStatsControls .field{min-width:180px;}
+.item{
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.06);
+  border-radius:16px;
+  padding:12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:10px;
+}
+.item-title{ font-weight:900; }
+.item-meta{ margin-top:4px; font-size:12px; color:var(--muted); }
+.item-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+.code{
+  white-space:pre-wrap;
+  border:1px solid var(--border);
+  background:rgba(0,0,0,0.25);
+  border-radius:16px;
+  padding:12px;
+  min-height:120px;
+  overflow:auto;
+}
+
+.stat{
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.06);
+  border-radius:16px;
+  padding:12px;
+}
+.statnum{
+  font-size:22px;
+  font-weight:950;
+  margin-top:6px;
+}
+
+dialog{
+  border:none;
+  border-radius:18px;
+  padding:0;
+  background:rgba(15,20,35,0.95);
+  color:var(--text);
+  width:min(640px, calc(100vw - 28px));
+  box-shadow:var(--shadow);
+}
+dialog::backdrop{ background:rgba(0,0,0,0.65); backdrop-filter: blur(3px); }
+.dlg{ margin:0; }
+.dlg-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px;
+  border-bottom:1px solid var(--border);
+}
+.dlg-body{ padding:12px; display:flex; flex-direction:column; gap:12px; }
+.dlg-actions{
+  padding:12px;
+  border-top:1px solid var(--border);
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
+.filebtn{ display:inline-flex; align-items:center; gap:10px; }
+.filebtn input{ display:none; }
+.details summary{ cursor:pointer; }

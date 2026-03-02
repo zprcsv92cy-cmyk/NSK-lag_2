@@ -4,7 +4,7 @@
      * Navigations (HTML): network-first (so GitHub updates come through)
      * Static assets: stale-while-revalidate
 */
-const CACHE = 'nsk-lag-cache-v74';
+const CACHE = 'nsk-lag-cache-v75';
 const CORE_ASSETS = [
   './',
   './index.html',

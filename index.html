@@ -2,291 +2,357 @@
 <html lang="sv">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#070b12" />
+  <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f19" />
   <title>NSK Lag</title>
-
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="app.css" />
 </head>
 
 <body>
-  <header class="topbar">
+  <header class="header">
     <div class="header-inner">
       <div class="brand">
-        <div class="brand-left">
-          <img class="logo" src="nsk-logo.png" alt="NSK" onerror="this.style.display='none'"/>
-          <div>
-            <div class="title">NSK Lag</div>
-            <div class="subtitle">Poolspel • Lag • Byten • PDF</div>
-          </div>
+        <img class="brand-logo" src="nsk-logo.png" alt="NSK" />
+        <div class="brand-copy">
+          <div class="brand-title">NSK Lag</div>
+          <div class="brand-sub">Poolspel • Lag • Byten • PDF</div>
         </div>
-        <div class="version">v78</div>
       </div>
 
-      <nav class="nav" aria-label="Meny">
-        <button class="chip" data-nav="home">🏠 Start</button>
-        <button class="chip" data-nav="match">⚔️ Matchläge</button>
-        <button class="chip" data-nav="ai">🤖 Bytesschema AI</button>
-        <button class="chip" data-nav="teams">🧩 Lag 1–3</button>
-        <button class="chip" data-nav="stats">📊 Statistik</button>
-        <button class="chip" data-nav="backup">💾 Backup</button>
-      </nav>
+      <div class="header-right">
+        <div class="version-pill">v79</div>
+      </div>
     </div>
+
+    <nav class="nav" aria-label="Meny">
+      <button class="nav-chip" data-nav="home">Start</button>
+      <button class="nav-chip" data-nav="squad">Trupp</button>
+      <button class="nav-chip" data-nav="goalies">Målvakter</button>
+      <button class="nav-chip" data-nav="match">Matchläge</button>
+      <button class="nav-chip" data-nav="ai">Bytesschema AI</button>
+      <button class="nav-chip" data-nav="teams">Lag 1–3</button>
+      <button class="nav-chip" data-nav="stats">Statistik</button>
+      <button class="nav-chip" data-nav="pdf">PDF</button>
+      <button class="nav-chip" data-nav="backup">Backup</button>
+    </nav>
   </header>
 
   <main class="container">
-
-    <!-- START -->
     <section id="view-home" class="view active" aria-label="Start">
-      <section class="card">
-        <div class="stack">
-          <button class="btn btn-primary" id="btn-create-pool">➕ Skapa nytt poolspel</button>
-          <button class="btn" data-nav="squad">👥 Truppen team 18</button>
-          <button class="btn btn-green" data-nav="goalies">🥅 Statistik målvakter</button>
+      <section class="card card-white">
+        <div class="btn-stack">
+          <button class="bigbtn bigbtn-dark" data-nav="squad">Truppen team 18</button>
+          <button class="bigbtn bigbtn-dark" id="btn-create-pool">Skapa nytt poolspel</button>
+          <button class="bigbtn bigbtn-light" data-nav="goalies">Statistik målvakter</button>
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-head">
-          <h2>Sparade poolspel</h2>
+      <section class="card card-white">
+        <div class="card-head-lite">
+          <h2 class="card-title">Sparade poolspel</h2>
           <div class="row">
-            <button class="btn btn-ghost" id="btn-demo">Skapa demo</button>
-            <button class="btn btn-ghost" id="btn-clear-pools">Rensa</button>
+            <button class="chipbtn" id="btn-demo">Skapa demo</button>
+            <button class="chipbtn" id="btn-clear-pools">Rensa</button>
           </div>
         </div>
 
         <div id="pools-empty" class="muted" hidden>Inga poolspel sparade ännu.</div>
         <div id="pools-list"></div>
       </section>
+
+      <section class="card card-white">
+        <div class="row wrap">
+          <button class="chipbtn" data-nav="match">Matchläge</button>
+          <button class="chipbtn" data-nav="ai">Bytesschema AI</button>
+          <button class="chipbtn" data-nav="teams">Lag 1–3</button>
+          <button class="chipbtn" data-nav="pdf">PDF</button>
+          <button class="chipbtn" data-nav="backup">Backup</button>
+        </div>
+      </section>
     </section>
 
-    <!-- TRUPP -->
     <section id="view-squad" class="view" aria-label="Truppen">
       <div class="view-head">
-        <button class="btn btn-ghost" data-nav="home">← Till start</button>
-        <h2>👥 Truppen team 18</h2>
+        <button class="xbtn" data-nav="home" aria-label="Stäng">✕</button>
+        <h2 class="view-title">Truppen team 18</h2>
       </div>
 
-      <section class="card">
-        <div class="card-head">
-          <h3>Spelare</h3>
-          <button class="btn btn-ghost" id="btn-add-player">+ Lägg till</button>
+      <section class="card card-white">
+        <div class="card-head-lite">
+          <h3 class="h3">Spelare</h3>
+          <button class="chipbtn" id="btn-add-player">Lägg till</button>
         </div>
         <div class="muted small">Tryck på spelare för att redigera.</div>
         <div id="players-list"></div>
       </section>
 
-      <section class="card">
-        <div class="card-head">
-          <h3>Tränare / Ledare</h3>
-          <button class="btn btn-ghost" id="btn-add-coach">+ Lägg till</button>
+      <section class="card card-white">
+        <div class="card-head-lite">
+          <h3 class="h3">Tränare / Ledare</h3>
+          <button class="chipbtn" id="btn-add-coach">Lägg till</button>
         </div>
         <div id="coaches-list"></div>
       </section>
     </section>
 
-    <!-- MÅLVAKTER -->
     <section id="view-goalies" class="view" aria-label="Målvaktsstatistik">
       <div class="view-head">
-        <button class="btn btn-ghost" data-nav="home">← Till start</button>
-        <h2>🥅 Statistik målvakter</h2>
+        <button class="xbtn" data-nav="home" aria-label="Stäng">✕</button>
+        <h2 class="view-title">Statistik målvakter</h2>
       </div>
 
-      <section class="card">
+      <section class="card card-white">
         <div class="grid3">
-          <div class="stat">
-            <div class="muted small">Antal poolspel</div>
-            <div class="statnum" id="g-total-pools">0</div>
+          <div class="statbox">
+            <div class="statlabel">Antal poolspel</div>
+            <div class="statvalue" id="g-total-pools">0</div>
           </div>
-          <div class="stat">
-            <div class="muted small">Målvaktsmatcher</div>
-            <div class="statnum" id="g-total-matches">0</div>
+          <div class="statbox">
+            <div class="statlabel">Målvaktsmatcher</div>
+            <div class="statvalue" id="g-total-matches">0</div>
           </div>
-          <div class="stat">
-            <div class="muted small">Spelare med tid</div>
-            <div class="statnum" id="g-unique">0</div>
+          <div class="statbox">
+            <div class="statlabel">Spelare med tid</div>
+            <div class="statvalue" id="g-unique">0</div>
           </div>
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-head">
-          <h3>Alla poolspel</h3>
-          <button class="btn btn-ghost" id="btn-refresh-goalies">Uppdatera</button>
+      <section class="card card-white">
+        <div class="card-head-lite">
+          <h3 class="h3">Alla poolspel</h3>
+          <button class="chipbtn" id="btn-refresh-goalies">Uppdatera</button>
         </div>
         <div id="goalie-pools"></div>
       </section>
 
-      <section class="card">
-        <h3>Summering per spelare</h3>
+      <section class="card card-white">
+        <h3 class="h3">Summering per spelare</h3>
         <div id="goalie-summary"></div>
       </section>
     </section>
 
-    <!-- MATCHLÄGE -->
     <section id="view-match" class="view" aria-label="Matchläge">
       <div class="view-head">
-        <button class="btn btn-ghost" data-nav="home">← Till start</button>
-        <h2>⚔️ Matchläge</h2>
+        <button class="xbtn" data-nav="home" aria-label="Stäng">✕</button>
+        <h2 class="view-title">Matchläge</h2>
       </div>
 
-      <section class="card">
-        <div class="card-head">
-          <h3>Aktivt poolspel</h3>
-          <button class="btn btn-ghost" id="btn-pick-pool">Välj poolspel</button>
+      <section class="card card-white">
+        <div class="card-head-lite">
+          <h3 class="h3">Aktivt poolspel</h3>
+          <button class="chipbtn" id="btn-pick-pool">Välj</button>
         </div>
 
         <div class="row wrap">
-          <div class="pill">Pool: <b id="active-pool-name">—</b></div>
-          <div class="pill">Tid: <b id="match-timer">00:00</b></div>
-          <div class="pill">Period: <b id="match-period">1</b></div>
+          <div class="pill-dark">Pool: <b id="active-pool-name">—</b></div>
+          <div class="pill-dark">Tid: <b id="match-timer">00:00</b></div>
+          <div class="pill-dark">Period: <b id="match-period">1</b></div>
         </div>
 
-        <div class="row wrap" style="margin-top:12px;">
-          <button class="btn btn-primary" id="btn-start-stop">Start</button>
-          <button class="btn" id="btn-period">Ny period</button>
-          <button class="btn" id="btn-line-change">Byt femma</button>
-          <button class="btn btn-ghost" id="btn-reset-match">Återställ</button>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-head">
-          <h3>Logg</h3>
-          <button class="btn btn-ghost" id="btn-export-match">Exportera logg</button>
-        </div>
-        <div id="match-log" class="code"></div>
-      </section>
-    </section>
-
-    <!-- BYTESSCHEMA AI -->
-    <section id="view-ai" class="view" aria-label="Bytesschema AI">
-      <div class="view-head">
-        <button class="btn btn-ghost" data-nav="home">← Till start</button>
-        <h2>🤖 Bytesschema AI</h2>
-      </div>
-
-      <section class="card">
-        <div class="grid2">
-          <label class="field">
-            <span>Antal utespelare i truppen</span>
-            <input id="ai-player-count" type="number" min="1" step="1" />
-          </label>
-          <label class="field">
-            <span>Antal femmor (linor)</span>
-            <input id="ai-lines" type="number" min="1" step="1" value="3" />
+        <div class="row wrap" style="margin-top:10px;">
+          <div class="pill-dark">Byte: <b id="shift-remaining">00:45</b></div>
+          <label class="mini-field">
+            <span>Byte (sek)</span>
+            <input id="shift-seconds" type="number" min="10" step="5" value="45" />
           </label>
         </div>
 
         <div class="row wrap" style="margin-top:10px;">
-          <button class="btn btn-primary" id="btn-ai-generate">Generera schema</button>
-          <button class="btn btn-ghost" id="btn-ai-copy">Kopiera</button>
+          <div class="pill-dark">Målvakt: <b id="current-goalie">—</b></div>
+          <button class="chipbtn" id="btn-next-goalie">Nästa målvakt</button>
         </div>
 
-        <div class="muted small" style="margin-top:10px;">
-          Schema bygger på “round-robin” rotation så alla får jämn fördelning av byten.
+        <div class="row wrap" style="margin-top:12px;">
+          <button class="btn-primary-pill" id="btn-start-stop">Start</button>
+          <button class="btn-pill" id="btn-period">Ny period</button>
+          <button class="btn-pill" id="btn-line-change">Byt femma</button>
+          <button class="btn-ghost-pill" id="btn-reset-match">Återställ</button>
         </div>
+      </section>
 
-        <pre id="ai-output" class="code"></pre>
+      <section class="card card-white">
+        <div class="card-head-lite">
+          <h3 class="h3">Logg</h3>
+          <div class="row">
+            <button class="chipbtn" id="btn-export-match">Exportera logg</button>
+            <button class="chipbtn" id="btn-copy-match">Kopiera</button>
+          </div>
+        </div>
+        <pre id="match-log" class="codebox"></pre>
       </section>
     </section>
 
-    <!-- LAG 1–3 -->
-    <section id="view-teams" class="view" aria-label="Lag 1-3">
+    <section id="view-ai" class="view" aria-label="Bytesschema AI">
       <div class="view-head">
-        <button class="btn btn-ghost" data-nav="home">← Till start</button>
-        <h2>🧩 Lag 1–3</h2>
+        <button class="xbtn" data-nav="home" aria-label="Stäng">✕</button>
+        <h2 class="view-title">Bytesschema AI</h2>
       </div>
 
-      <section class="card">
+      <section class="card card-white">
+        <div class="grid2">
+          <label class="field">
+            <span>Antal utespelare</span>
+            <input id="ai-player-count" type="number" min="1" step="1" />
+          </label>
+          <label class="field">
+            <span>Antal femmor</span>
+            <input id="ai-lines" type="number" min="1" step="1" value="3" />
+          </label>
+        </div>
+
+        <div class="row wrap" style="margin-top:12px;">
+          <button class="btn-primary-pill" id="btn-ai-generate">Generera</button>
+          <button class="btn-pill" id="btn-ai-copy">Kopiera</button>
+          <button class="btn-pill" id="btn-ai-to-pdf">Skicka till PDF</button>
+        </div>
+
+        <pre id="ai-output" class="codebox"></pre>
+      </section>
+    </section>
+
+    <section id="view-teams" class="view" aria-label="Lag 1–3">
+      <div class="view-head">
+        <button class="xbtn" data-nav="home" aria-label="Stäng">✕</button>
+        <h2 class="view-title">Lag 1–3</h2>
+      </div>
+
+      <section class="card card-white">
         <div class="row wrap">
-          <button class="btn btn-primary" id="btn-teams-generate">Skapa lag (auto)</button>
-          <button class="btn btn-ghost" id="btn-teams-copy">Kopiera</button>
+          <button class="btn-primary-pill" id="btn-teams-generate">Skapa lag (auto)</button>
+          <button class="btn-pill" id="btn-teams-copy">Kopiera</button>
+          <button class="btn-pill" id="btn-teams-to-pdf">Skicka till PDF</button>
         </div>
 
         <div class="grid3" style="margin-top:12px;">
-          <div class="card soft">
-            <h3>Lag 1</h3>
+          <div class="subcard">
+            <h3 class="h3">Lag 1</h3>
             <div id="team-1"></div>
           </div>
-          <div class="card soft">
-            <h3>Lag 2</h3>
+          <div class="subcard">
+            <h3 class="h3">Lag 2</h3>
             <div id="team-2"></div>
           </div>
-          <div class="card soft">
-            <h3>Lag 3</h3>
+          <div class="subcard">
+            <h3 class="h3">Lag 3</h3>
             <div id="team-3"></div>
           </div>
         </div>
       </section>
     </section>
 
-    <!-- STATISTIK -->
     <section id="view-stats" class="view" aria-label="Statistik">
       <div class="view-head">
-        <button class="btn btn-ghost" data-nav="home">← Till start</button>
-        <h2>📊 Statistik</h2>
+        <button class="xbtn" data-nav="home" aria-label="Stäng">✕</button>
+        <h2 class="view-title">Statistik</h2>
       </div>
 
-      <section class="card">
-        <div class="card-head">
-          <h3>Översikt</h3>
-          <button class="btn btn-ghost" id="btn-refresh-stats">Uppdatera</button>
+      <section class="card card-white">
+        <div class="card-head-lite">
+          <h3 class="h3">Översikt</h3>
+          <button class="chipbtn" id="btn-refresh-stats">Uppdatera</button>
         </div>
+
         <div class="grid3">
-          <div class="stat">
-            <div class="muted small">Spelare i truppen</div>
-            <div class="statnum" id="s-players">0</div>
+          <div class="statbox">
+            <div class="statlabel">Spelare i truppen</div>
+            <div class="statvalue" id="s-players">0</div>
           </div>
-          <div class="stat">
-            <div class="muted small">Poolspel</div>
-            <div class="statnum" id="s-pools">0</div>
+          <div class="statbox">
+            <div class="statlabel">Poolspel</div>
+            <div class="statvalue" id="s-pools">0</div>
           </div>
-          <div class="stat">
-            <div class="muted small">Matchloggar</div>
-            <div class="statnum" id="s-matchlogs">0</div>
+          <div class="statbox">
+            <div class="statlabel">Matchloggar</div>
+            <div class="statvalue" id="s-matchlogs">0</div>
           </div>
         </div>
       </section>
 
-      <section class="card">
-        <h3>Senaste matchloggar</h3>
+      <section class="card card-white">
+        <h3 class="h3">Senaste matchloggar</h3>
         <div id="stats-matchlogs"></div>
       </section>
     </section>
 
-    <!-- BACKUP -->
-    <section id="view-backup" class="view" aria-label="Backup">
+    <section id="view-pdf" class="view" aria-label="PDF">
       <div class="view-head">
-        <button class="btn btn-ghost" data-nav="home">← Till start</button>
-        <h2>💾 Backup</h2>
+        <button class="xbtn" data-nav="home" aria-label="Stäng">✕</button>
+        <h2 class="view-title">PDF</h2>
       </div>
 
-      <section class="card">
-        <div class="row wrap">
-          <button class="btn btn-primary" id="btn-export">Exportera backup (JSON)</button>
+      <section class="card card-white">
+        <div class="card-head-lite">
+          <h3 class="h3">Förhandsvisning</h3>
+          <div class="row wrap">
+            <button class="btn-primary-pill" id="btn-print">Skriv ut / Spara PDF</button>
+            <button class="btn-ghost-pill" id="btn-pdf-clear">Rensa PDF-innehåll</button>
+          </div>
+        </div>
 
-          <label class="btn btn-ghost filebtn">
+        <div class="muted small">Tips: iPhone Safari → Dela → Skriv ut → zooma → Dela → Spara som PDF.</div>
+      </section>
+
+      <section class="print-area" id="print-area">
+        <div class="print-head">
+          <img class="print-logo" src="nsk-logo.png" alt="NSK">
+          <div>
+            <div class="print-title">NSK Lag</div>
+            <div class="print-sub" id="pdf-subtitle">Sammanställning</div>
+          </div>
+          <div class="print-meta" id="pdf-meta"></div>
+        </div>
+
+        <div class="print-block">
+          <h3>Lag 1–3</h3>
+          <div class="print-grid3">
+            <div><h4>Lag 1</h4><div id="pdf-team-1"></div></div>
+            <div><h4>Lag 2</h4><div id="pdf-team-2"></div></div>
+            <div><h4>Lag 3</h4><div id="pdf-team-3"></div></div>
+          </div>
+        </div>
+
+        <div class="print-block">
+          <h3>Bytesschema</h3>
+          <pre id="pdf-ai" class="print-pre"></pre>
+        </div>
+
+        <div class="print-block">
+          <h3>Målvaktsstatistik</h3>
+          <div id="pdf-goalies"></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="view-backup" class="view" aria-label="Backup">
+      <div class="view-head">
+        <button class="xbtn" data-nav="home" aria-label="Stäng">✕</button>
+        <h2 class="view-title">Backup</h2>
+      </div>
+
+      <section class="card card-white">
+        <div class="row wrap">
+          <button class="btn-primary-pill" id="btn-export">Exportera backup (JSON)</button>
+
+          <label class="btn-pill filebtn">
             Importera backup
             <input id="file-import" type="file" accept="application/json" />
           </label>
 
-          <button class="btn btn-danger" id="btn-reset-all">Återställ allt</button>
+          <button class="btn-danger-pill" id="btn-reset-all">Återställ allt</button>
         </div>
 
-        <pre id="backup-preview" class="code" hidden></pre>
+        <pre id="backup-preview" class="codebox" hidden></pre>
       </section>
     </section>
-
   </main>
 
-  <!-- DIALOG: CREATE POOL -->
   <dialog id="dlg-create">
     <form method="dialog" class="dlg">
       <div class="dlg-head">
-        <h3>➕ Skapa poolspel</h3>
-        <button class="btn btn-ghost" value="cancel">✕</button>
+        <h3>Skapa poolspel</h3>
+        <button class="chipbtn" value="cancel">✕</button>
       </div>
 
       <div class="dlg-body">
@@ -308,8 +374,8 @@
       </div>
 
       <div class="dlg-actions">
-        <button class="btn" value="cancel">Avbryt</button>
-        <button class="btn btn-primary" id="btn-save-pool" value="default">Spara</button>
+        <button class="btn-ghost-pill" value="cancel">Avbryt</button>
+        <button class="btn-primary-pill" id="btn-save-pool" value="default">Spara</button>
       </div>
     </form>
   </dialog>

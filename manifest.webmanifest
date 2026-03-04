@@ -1,13 +1,22 @@
 {
   "name": "NSK Lag",
   "short_name": "NSK Lag",
-  "description": "NSK Lag v78 – poolspel, trupp, matchläge, byten, lag, statistik och backup.",
-  "start_url": "./index.html",
+  "description": "NSK Lag v79 – allt-i-ett för Team 18.",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#070b12",
-  "theme_color": "#070b12",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
